@@ -180,7 +180,7 @@ class EarthquakeViewModel : ViewModel() {
 
         if (searchTerm.isNotEmpty()) {
             filtered = filtered.filter { quake ->
-                quake.properties.place?.contains(searchTerm, ignoreCase = true) == true
+                quake.properties.place?.contains(searchTerm.trim(), ignoreCase = true) == true
             }
         }
 
@@ -260,7 +260,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    QuakeWatchWestApp()
+                    QuakesBCApp()
                 }
             }
         }
@@ -300,7 +300,7 @@ fun QuakeWatchWestTheme(content: @Composable () -> Unit) {
 // Main App Composable
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuakeWatchWestApp(viewModel: EarthquakeViewModel = viewModel()) {
+fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
     val context = LocalContext.current
 
     LaunchedEffect(viewModel.filteredQuakes) {
@@ -365,7 +365,7 @@ fun QuakeWatchWestApp(viewModel: EarthquakeViewModel = viewModel()) {
                     value = viewModel.searchTerm,
                     onValueChange = { viewModel.onSearchChange(it) },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Search by location (e.g., Vancouver, Victoria, Calgary)...") },
+                    placeholder = { Text("Search by town...") },
                     leadingIcon = {
                         Icon(Icons.Default.Search, contentDescription = null)
                     },
