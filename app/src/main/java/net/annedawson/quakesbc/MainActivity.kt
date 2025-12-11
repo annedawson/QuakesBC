@@ -1,3 +1,4 @@
+// MainActivity.kt
 package net.annedawson.quakesbc
 
 import android.Manifest
@@ -10,6 +11,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -254,7 +256,12 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             QuakeWatchWestTheme {
-                QuakeWatchWestApp()
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    QuakeWatchWestApp()
+                }
             }
         }
     }
@@ -310,6 +317,7 @@ fun QuakeWatchWestApp(viewModel: EarthquakeViewModel = viewModel()) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xFF1E3A8A))
+                    .statusBarsPadding()
                     .padding(16.dp)
             ) {
                 Row(
@@ -717,7 +725,7 @@ fun EarthquakeCard(quake: Feature, isSelected: Boolean, onClick: () -> Unit) {
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) Color(0xFF1E3A8A) else Color(0xFF111827)
         ),
-        border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF3B82F6)) else null
+        border = if (isSelected) BorderStroke(2.dp, Color(0xFF3B82F6)) else null
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -846,54 +854,3 @@ fun showNotification(context: Context, quake: Feature) {
 
     NotificationManagerCompat.from(context).notify(quake.id.hashCode(), notification)
 }
-
-
-
-
-/*
-
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import net.annedawson.quakesbc.ui.theme.QuakesBCTheme
-
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            QuakesBCTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    QuakesBCTheme {
-        Greeting("Android")
-    }
-}*/
