@@ -305,7 +305,7 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
 
     LaunchedEffect(viewModel.filteredQuakes) {
         viewModel.filteredQuakes.forEach { quake ->
-            if ((quake.properties.mag ?: 0.0) >= 4.0) {
+            if ((quake.properties.mag ?: 0.0) >= 5.5) {
                 showNotification(context, quake)
             }
         }
