@@ -1,6 +1,9 @@
 // MainActivity.kt
 package net.annedawson.quakesbc
 
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.*
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -487,63 +490,200 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            Box(
+            // put here
+            // Replace the Box starting at line 494 with this:
+            MapView(
+                earthquakes = viewModel.filteredQuakes,
+                selectedQuake = viewModel.selectedQuake,
+                onQuakeSelected = { quake ->
+                    viewModel.selectedQuake = if (viewModel.selectedQuake == quake) null else quake
+                },
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .background(Color(0xFF1F2937)),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = Color(0xFF4B5563)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Map View",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = Color(0xFF6B7280)
-                    )
-                    Text(
-                        text = "Integrate Google Maps SDK to display earthquake locations",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF4B5563)
-                    )
-                }
-
-                Card(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF111827).copy(alpha = 0.9f))
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
-                            text = "Magnitude Scale",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        MagnitudeLegendItem(color = Color(0xFFDC2626), label = "6.0+ Major")
-                        MagnitudeLegendItem(color = Color(0xFFEA580C), label = "5.0-5.9 Moderate")
-                        MagnitudeLegendItem(color = Color(0xFFCA8A04), label = "4.0-4.9 Light")
-                        MagnitudeLegendItem(color = Color(0xFF2563EB), label = "3.0-3.9 Minor")
-                        MagnitudeLegendItem(color = Color(0xFF16A34A), label = "<3.0 Micro")
-                    }
-                }
-            }
+            )
 
             EarthquakeList(
                 viewModel = viewModel,
                 modifier = Modifier.width(350.dp)
             )
         }
+    }
+}
+
+@Composable
+fun MapView(
+    earthquakes: List<Feature>,
+    selectedQuake: Feature?,
+    onQuakeSelected: (Feature) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // Western Canada center coordinates (BC focus)
+    val westCanadaCenter = LatLng(54.0, -125.0)
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(westCanadaCenter, 5.5f)
+    }
+
+    Box(modifier = modifier) {
+        GoogleMap(
+            modifier = Modifier.fillMaxSize(),
+            cameraPositionState = cameraPositionState,
+            properties = MapProperties(
+                mapType = MapType.TERRAIN,
+                isMyLocationEnabled = false
+            ),
+            uiSettings = MapUiSettings(
+                zoomControlsEnabled = true,
+                zoomGesturesEnabled = true,
+                scrollGesturesEnabled = true,
+                tiltGesturesEnabled = false,
+                rotationGesturesEnabled = false,
+                compassEnabled = true
+            )
+        ) {
+            // Draw earthquake markers as circles
+            earthquakes.forEach { quake ->
+                val position = LatLng(
+                    quake.geometry.coordinates[1], // latitude
+                    quake.geometry.coordinates[0]  // longitude
+                )
+                val mag = quake.properties.mag ?: 0.0
+                val isSelected = selectedQuake == quake
+
+                // Outer circle (larger, semi-transparent)
+                Circle(
+                    center = position,
+                    radius = getMagnitudeRadius(mag),
+                    fillColor = getMagnitudeColor(mag).copy(alpha = 0.4f),
+                    strokeColor = getMagnitudeColor(mag),
+                    strokeWidth = if (isSelected) 4f else 2f,
+                    clickable = true,
+                    onClick = {
+                        onQuakeSelected(quake)
+                    }
+                )
+
+                // Center dot (smaller, solid)
+                Circle(
+                    center = position,
+                    radius = 2000.0,
+                    fillColor = getMagnitudeColor(mag),
+                    strokeColor = Color.White,
+                    strokeWidth = 1f
+                )
+            }
+        }
+
+        // Magnitude legend (bottom left)
+        Card(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF111827).copy(alpha = 0.9f)
+            )
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = "Magnitude Scale",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                MagnitudeLegendItem(color = Color(0xFFDC2626), label = "6.0+ Major")
+                MagnitudeLegendItem(color = Color(0xFFEA580C), label = "5.0-5.9 Moderate")
+                MagnitudeLegendItem(color = Color(0xFFCA8A04), label = "4.0-4.9 Light")
+                MagnitudeLegendItem(color = Color(0xFF2563EB), label = "3.0-3.9 Minor")
+                MagnitudeLegendItem(color = Color(0xFF16A34A), label = "<3.0 Micro")
+            }
+        }
+
+        // Selected earthquake info card (top right)
+        selectedQuake?.let { quake ->
+            Card(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .width(280.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF111827).copy(alpha = 0.95f)
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Details",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        IconButton(
+                            onClick = { onQuakeSelected(quake) },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = Color(0xFF9CA3AF)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Magnitude
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clip(CircleShape)
+                                .background(getMagnitudeColor(quake.properties.mag ?: 0.0))
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "M${String.format("%.1f", quake.properties.mag ?: 0.0)}",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = quake.properties.place ?: "Unknown location",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFFD1D5DB)
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider(color = Color(0xFF374151))
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    DetailRow("Time", formatTime(quake.properties.time))
+                    DetailRow("Depth", "${String.format("%.1f", quake.geometry.coordinates.getOrNull(2) ?: 0.0)} km")
+                    DetailRow("Coordinates", "${String.format("%.4f", quake.geometry.coordinates[1])}°, ${String.format("%.4f", quake.geometry.coordinates[0])}°")
+
+                    quake.properties.felt?.let { felt ->
+                        DetailRow("Felt Reports", "$felt people")
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Helper function to calculate circle radius based on magnitude
+fun getMagnitudeRadius(mag: Double): Double {
+    return when {
+        mag >= 6.0 -> 50000.0  // 50 km radius
+        mag >= 5.0 -> 35000.0  // 35 km radius
+        mag >= 4.0 -> 25000.0  // 25 km radius
+        mag >= 3.0 -> 15000.0  // 15 km radius
+        mag >= 2.0 -> 10000.0  // 10 km radius
+        else -> 5000.0         // 5 km radius
     }
 }
 
