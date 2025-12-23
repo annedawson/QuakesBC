@@ -484,31 +484,43 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                 }
             }
         }
+        // delete below
     ) { paddingValues ->
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // put here
-            // Replace the Box starting at line 494 with this:
+            // Full-screen map
             MapView(
                 earthquakes = viewModel.filteredQuakes,
                 selectedQuake = viewModel.selectedQuake,
                 onQuakeSelected = { quake ->
                     viewModel.selectedQuake = if (viewModel.selectedQuake == quake) null else quake
                 },
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
+                modifier = Modifier.fillMaxSize()
             )
 
-            EarthquakeList(
-                viewModel = viewModel,
-                modifier = Modifier.width(350.dp)
-            )
+            // Floating earthquake list card (bottom right)
+            Card(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+                    .width(350.dp)
+                    .heightIn(max = 450.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF1F2937).copy(alpha = 0.95f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                EarthquakeList(
+                    viewModel = viewModel,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
+    //delete above
 }
 
 @Composable
@@ -759,7 +771,6 @@ fun MagnitudeLegendItem(color: Color, label: String) {
 fun EarthquakeList(viewModel: EarthquakeViewModel, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
-            .fillMaxHeight()
             .background(Color(0xFF1F2937))
     ) {
         Row(
