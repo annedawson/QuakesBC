@@ -86,6 +86,7 @@ interface USGSApi {
 }
 
 // ViewModel
+
 class EarthquakeViewModel : ViewModel() {
     var earthquakes by mutableStateOf<List<Feature>>(emptyList())
         private set
@@ -181,9 +182,10 @@ class EarthquakeViewModel : ViewModel() {
     fun filterAndSortQuakes() {
         var filtered = earthquakes.toList()
 
-        if (searchTerm.isNotEmpty()) {
+        val trimmedSearch = searchTerm.trim()
+        if (trimmedSearch.isNotEmpty()) {
             filtered = filtered.filter { quake ->
-                quake.properties.place?.contains(searchTerm.trim(), ignoreCase = true) == true
+                quake.properties.place?.contains(trimmedSearch, ignoreCase = true) == true
             }
         }
 
@@ -236,6 +238,8 @@ class EarthquakeViewModel : ViewModel() {
         filterAndSortQuakes()
     }
 }
+
+// End of ViewModel
 
 // Main Activity
 class MainActivity : ComponentActivity() {
@@ -306,12 +310,18 @@ fun QuakeWatchWestTheme(content: @Composable () -> Unit) {
 fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
     val context = LocalContext.current
 
-    LaunchedEffect(viewModel.filteredQuakes) {
+    /*LaunchedEffect(viewModel.filteredQuakes) {
         viewModel.filteredQuakes.forEach { quake ->
             if ((quake.properties.mag ?: 0.0) >= 5.5) {
                 showNotification(context, quake)
             }
         }
+    }*/
+
+    // Add debounced search filtering
+    LaunchedEffect(viewModel.searchTerm) {
+        delay(150) // Wait 150ms after user stops typing
+        viewModel.filterAndSortQuakes()
     }
 
     Scaffold(
@@ -364,22 +374,103 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
-                    value = viewModel.searchTerm,
-                    onValueChange = { viewModel.onSearchChange(it) },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Search by town...") },
-                    leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = null)
-                    },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFF1F2937),
-                        unfocusedContainerColor = Color(0xFF1F2937),
-                        focusedBorderColor = Color(0xFF3B82F6),
-                        unfocusedBorderColor = Color(0xFF4B5563)
-                    ),
-                    singleLine = true
-                )
+
+                // was an OutlinedTextField
+
+                // Search dropdown
+                var expanded by remember { mutableStateOf(false) }
+                val uniqueTowns = remember(viewModel.earthquakes) {
+                    viewModel.earthquakes
+                        .mapNotNull { it.properties.place }
+                        .map { place ->
+                            // Extract town name (usually after "km X of ")
+                            val parts = place.split(" of ")
+                            if (parts.size > 1) parts[1].trim() else place.trim()
+                        }
+                        .distinct()
+                        .sorted()
+                }
+
+                Column {
+                    OutlinedButton(
+                        onClick = { expanded = !expanded },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color(0xFF1F2937),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (viewModel.searchTerm.isEmpty()) "Select location..." else viewModel.searchTerm,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (viewModel.searchTerm.isEmpty()) Color(0xFF9CA3AF) else Color.White
+                                )
+                            }
+                            if (viewModel.searchTerm.isNotEmpty()) {
+                                IconButton(
+                                    onClick = {
+                                        viewModel.searchTerm = ""
+                                        viewModel.filterAndSortQuakes()
+                                    },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Clear",
+                                        tint = Color(0xFF9CA3AF),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                            Icon(
+                                imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = null
+                            )
+                        }
+                    }
+
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier
+                            .fillMaxWidth(0.9f)
+                            .heightIn(max = 400.dp)
+                    ) {
+                        if (uniqueTowns.isEmpty()) {
+                            DropdownMenuItem(
+                                text = { Text("No locations available") },
+                                onClick = { }
+                            )
+                        } else {
+                            uniqueTowns.forEach { town ->
+                                DropdownMenuItem(
+                                    text = { Text(town) },
+                                    onClick = {
+                                        viewModel.searchTerm = town
+                                        viewModel.filterAndSortQuakes()
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                //
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -387,11 +478,11 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                     onClick = { viewModel.showFilters = !viewModel.showFilters },
                     colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD1D5DB))
                 ) {
-                    Icon(
+                    /*Icon(
                         imageVector = Icons.Default.Clear,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp)
-                    )
+                    )*/
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Filters & Sorting")
                     Spacer(modifier = Modifier.width(4.dp))
