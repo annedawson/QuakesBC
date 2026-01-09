@@ -974,6 +974,42 @@ fun MapView(
                 )
             }
 
+            // add code here
+
+            // Add this warning if results are limited
+            if (viewModel.earthquakes.size > viewModel.maxResults) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFCA8A04).copy(alpha = 0.3f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = Color(0xFFFBBF24),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Showing ${viewModel.maxResults} of ${viewModel.earthquakes.size} total quakes. Use filters to narrow results.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFFD1D5DB)
+                        )
+                    }
+                }
+            }
+
+            // end of added code
+
+
+
             when {
                 viewModel.loading -> {
                     Box(
