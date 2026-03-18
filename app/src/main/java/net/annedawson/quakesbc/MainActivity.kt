@@ -1,6 +1,19 @@
 // MainActivity.kt
 package net.annedawson.quakesbc
 
+/*
+
+Last updated: Wednesday 18th March 2026, 15:53 PT
+Date started: Friday 5th December 2025
+Programmer: Anne Dawson
+App: QuakesBC
+Purpose: An earthquake monitor for BC Canada and neighbouring territory
+File: MainActivity.kt
+Last commit #:  14
+
+ */
+
+
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -347,6 +360,15 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
         }
     }*/
 
+    // ── NEW: track whether the info screen is open ──────────────────────────
+    var showInfoScreen by remember { mutableStateOf(false) }
+
+    if (showInfoScreen) {
+        InfoScreen(onBack = { showInfoScreen = false })
+        return   // don't render the rest of the app while info screen is open
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     // Add debounced search filtering
     LaunchedEffect(viewModel.searchTerm) {
         delay(150) // Wait 150ms after user stops typing
@@ -368,11 +390,19 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
+                        /*Icon(
                             imageVector = Icons.Default.Warning,
                             contentDescription = null,
                             tint = Color(0xFFFBBF24),
                             modifier = Modifier.size(32.dp)
+                        )*/
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "App information",
+                            tint = Color(0xFFFBBF24),
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clickable { showInfoScreen = true }   // ← new
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
@@ -1144,6 +1174,166 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
         }
     }
 
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun InfoScreen(onBack: () -> Unit) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("About QuakesBC") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF1E3A8A),
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
+            )
+        },
+        containerColor = Color(0xFF111827)
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                // App description card
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2937))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = Color(0xFFFBBF24),
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "QuakesBC",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Western Canada Earthquake Monitor tracks seismic activity " +
+                                    "across British Columbia, Alberta, and neighbouring regions " +
+                                    "using live data from the USGS Earthquake Hazards Program.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFFD1D5DB)
+                        )
+                    }
+                }
+            }
+
+            item {
+                // Data source card
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2937))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Data Source",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Earthquake data is provided by the United States Geological " +
+                                    "Survey (USGS) via the FDSN Web Services API. Data refreshes " +
+                                    "automatically every 5 minutes.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFFD1D5DB)
+                        )
+                    }
+                }
+            }
+
+            item {
+                // Magnitude scale card
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2937))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Magnitude Scale",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        listOf(
+                            Triple(Color(0xFFDC2626), "6.0+",    "Major"),
+                            Triple(Color(0xFFEA580C), "5.0–5.9", "Moderate"),
+                            Triple(Color(0xFFCA8A04), "4.0–4.9", "Light"),
+                            Triple(Color(0xFF2563EB), "3.0–3.9", "Minor"),
+                            Triple(Color(0xFF16A34A), "< 3.0",   "Micro")
+                        ).forEach { (color, range, label) ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clip(CircleShape)
+                                        .background(color)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "$range  —  $label",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFFD1D5DB)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                // Coverage area card
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2937))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Coverage Area",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Latitude 48°N – 70°N  ·  Longitude 141°W – 101°W\n" +
+                                    "Covers BC, Alberta, Yukon, and adjacent Pacific and Arctic regions.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFFD1D5DB)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
     @Composable
     fun EarthquakeCard(quake: Feature, isSelected: Boolean, onClick: () -> Unit) {
         Card(
@@ -1172,13 +1362,14 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                         Text(
                             text = "M${String.format("%.1f", quake.properties.mag ?: 0.0)}",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
                         )
                     }
                     Text(
                         text = formatTime(quake.properties.time),
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF9CA3AF)
+                        color = Color.White
                     )
                 }
 
@@ -1203,7 +1394,8 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                             )
                         } km",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF6B7280)
+                        //color = Color(0xFF6B7280)
+                        color = Color(0xFFD1D5DB)
                     )
                     quake.properties.felt?.let { felt ->
                         Text(
