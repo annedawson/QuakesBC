@@ -507,12 +507,27 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    TextButton(
+                    /*TextButton(
                         onClick = { viewModel.showFilters = !viewModel.showFilters },
                         colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD1D5DB))
                     ) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Filters & Sorting")
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = if (viewModel.showFilters) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }*/
+
+                    TextButton(
+                        onClick = { viewModel.showFilters = !viewModel.showFilters },
+                        colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD1D5DB))
+                    ) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        //Text("Filters & Sorting")
+                        Text(if (viewModel.showFilters) "Hide Filters" else "Display Filters")
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
                             imageVector = if (viewModel.showFilters) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
