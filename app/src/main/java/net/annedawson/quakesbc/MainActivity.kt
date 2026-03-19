@@ -3,17 +3,18 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Wednesday 18th March 2026, 15:53 PT
+Last updated: Thursday 19th March 2026, 10:25 PT
 Date started: Friday 5th December 2025
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Last commit #:  14
+Last commit #: 15 (improved UI in landscape orientation - work in progress)
 
  */
 
-
+import android.content.res.Configuration
+import androidx.compose.ui.platform.LocalConfiguration
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -351,6 +352,8 @@ fun QuakeWatchWestTheme(content: @Composable () -> Unit) {
 @Composable
 fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     /*LaunchedEffect(viewModel.filteredQuakes) {
         viewModel.filteredQuakes.forEach { quake ->
@@ -382,7 +385,8 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                     .fillMaxWidth()
                     .background(Color(0xFF1E3A8A))
                     .statusBarsPadding()
-                    .padding(16.dp)
+                    //CHANGE .padding(16.dp)
+                    .padding(horizontal = 16.dp, vertical = if (isLandscape) 4.dp else 16.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -404,7 +408,9 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                                 .size(32.dp)
                                 .clickable { showInfoScreen = true }   // ← new
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(12.dp)) // unchanged for landscape
+
+
                         Column {
                             Text(
                                 text = "QuakesBC",
@@ -431,7 +437,8 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                //CHANGE Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(if (isLandscape) 6.dp else 16.dp))
 
 
                 // was an OutlinedTextField
@@ -531,7 +538,8 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                 }
                 //
 
-                Spacer(modifier = Modifier.height(12.dp))
+                //CHANGE Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(if (isLandscape) 4.dp else 12.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -581,7 +589,8 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                 }
 
                 if (viewModel.showFilters) {
-                    Spacer(modifier = Modifier.height(12.dp))
+                    //CHANGE Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(if (isLandscape) 6.dp else 12.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -593,7 +602,9 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color(0xFF9CA3AF)
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            // CHANGE Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(if (isLandscape) 4.dp else 8.dp))
+
                             FilterDropdown(
                                 value = viewModel.timeFilter,
                                 options = listOf(
@@ -669,7 +680,8 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                     }
                 }
 
-                viewModel.lastUpdate?.let { lastUpdate ->
+
+              /*  viewModel.lastUpdate?.let { lastUpdate ->
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Last updated: ${
@@ -681,7 +693,23 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                         style = MaterialTheme.typography.labelSmall,
                         color = Color(0xFF9CA3AF)
                     )
+                }*/
+
+                //CHANGE
+
+                // Last updated — hide in landscape to save space:
+                if (!isLandscape) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    viewModel.lastUpdate?.let { lastUpdate ->
+                        Text(
+                            text = "Last updated: ${SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(lastUpdate)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF9CA3AF)
+                        )
+                    }
                 }
+
+
             }
         }
         // delete below
@@ -710,9 +738,9 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                 Card(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(16.dp)
-                        .width(350.dp)
-                        .heightIn(max = 450.dp),
+                        .padding(if (isLandscape) 8.dp else 16.dp)
+                        .width(if (isLandscape) 300.dp else 350.dp)
+                        .heightIn(max = if (isLandscape) 180.dp else 450.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = Color(0xFF1F2937).copy(alpha = 0.95f)
                     ),
