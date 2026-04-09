@@ -3,13 +3,14 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Thursday 19th March 2026, 10:25 PT
+Last updated: Thursday 9th April 2026, 9:47 PT
 Date started: Friday 5th December 2025
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Last commit #: 15 (improved UI in landscape orientation - work in progress)
+Last commit: -  Commit 17 - Removed the extra little square Details box
+            when an earthquake in a list is selected/highlighted.
 
  */
 
@@ -121,6 +122,7 @@ class EarthquakeViewModel : ViewModel() {
     var sortBy by mutableStateOf("time")
     var sortOrder by mutableStateOf("desc")
     var selectedQuake by mutableStateOf<Feature?>(null)
+    var selectedFromList by mutableStateOf(false)
     var showFilters by mutableStateOf(false)
     var showList by mutableStateOf(true)
     var lastUpdate by mutableStateOf<Date?>(null)
@@ -726,8 +728,10 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                 earthquakes = viewModel.filteredQuakes,
                 selectedQuake = viewModel.selectedQuake,
                 onQuakeSelected = { quake ->
+                    viewModel.selectedFromList = false
                     viewModel.selectedQuake = if (viewModel.selectedQuake == quake) null else quake
                 },
+                selectedFromList = viewModel.selectedFromList,
                 modifier = Modifier.fillMaxSize(),
                 centerLocation = if (viewModel.searchTerm.isNotEmpty())
                     viewModel.getAverageLocationForFiltered()
@@ -771,6 +775,7 @@ fun MapView(
     earthquakes: List<Feature>,
     selectedQuake: Feature?,
     onQuakeSelected: (Feature) -> Unit,
+    selectedFromList: Boolean = false,
     modifier: Modifier = Modifier,
     centerLocation: LatLng? = null
 ) {
@@ -901,8 +906,8 @@ fun MapView(
             }
         }
 
-        // Selected earthquake info card (top right)
-        selectedQuake?.let { quake ->
+        // Selected earthquake info card (top right) — only shown for map selections
+        if (!selectedFromList) selectedQuake?.let { quake ->
             Card(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -1193,6 +1198,7 @@ fun EarthquakeList(viewModel: EarthquakeViewModel, modifier: Modifier = Modifier
                             quake = quake,
                             isSelected = viewModel.selectedQuake == quake,
                             onClick = {
+                                viewModel.selectedFromList = true
                                 viewModel.selectedQuake =
                                     if (viewModel.selectedQuake == quake) null else quake
                             }
