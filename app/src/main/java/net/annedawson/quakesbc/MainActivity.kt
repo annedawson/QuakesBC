@@ -3,14 +3,13 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Thursday 9th April 2026, 9:47 PT
+Last updated: Tuesday 14th April 2026, 14:57 PT
 Date started: Friday 5th December 2025
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Last commit: -  Commit 17 - Removed the extra little square Details box
-            when an earthquake in a list is selected/highlighted.
+Commit: #18 - shows count of earthquakes on the location name
 
  */
 
@@ -447,7 +446,7 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
 
                 // Search dropdown
                 var expanded by remember { mutableStateOf(false) }
-                val uniqueTowns = remember(viewModel.earthquakes) {
+                val townCounts = remember(viewModel.earthquakes) {
                     viewModel.earthquakes
                         .mapNotNull { it.properties.place }
                         .map { place ->
@@ -455,8 +454,11 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                             val parts = place.split(" of ")
                             if (parts.size > 1) parts[1].trim() else place.trim()
                         }
-                        .distinct()
-                        .sorted()
+                        .groupingBy { it }
+                        .eachCount()
+                }
+                val uniqueTowns = remember(townCounts) {
+                    townCounts.keys.sorted()
                 }
 
                 Column {
@@ -527,12 +529,13 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                         } else {
                             uniqueTowns.forEach { town ->
                                 DropdownMenuItem(
-                                    text = { Text(town) },
+                                    text = { Text("$town (${townCounts[town] ?: 0})") },
                                     onClick = {
                                         viewModel.searchTerm = town
                                         viewModel.filterAndSortQuakes()
                                         viewModel.showList = false
                                         viewModel.showFilters = false
+                                        viewModel.selectedQuake = null
                                         expanded = false
                                     }
                                 )
