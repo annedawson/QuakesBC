@@ -3,13 +3,14 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Tuesday 14th April 2026, 14:57 PT
+Last updated: Wednesday 15th April 2026, 9:59 PT
 Date started: Friday 5th December 2025
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Commit: #18 - shows count of earthquakes on the location name
+Commit: #19 - shows count of earthquakes on the selected location name
+        as well as the location name in the dropdown list
 
  */
 
@@ -445,12 +446,15 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                 // was an OutlinedTextField
 
                 // Search dropdown
+
+                // ... inside QuakesBCApp Scaffold topBar ...
+
+// Search dropdown
                 var expanded by remember { mutableStateOf(false) }
                 val townCounts = remember(viewModel.earthquakes) {
                     viewModel.earthquakes
                         .mapNotNull { it.properties.place }
                         .map { place ->
-                            // Extract town name (usually after "km X of ")
                             val parts = place.split(" of ")
                             if (parts.size > 1) parts[1].trim() else place.trim()
                         }
@@ -485,11 +489,20 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
+
+                                // --- UPDATED: Shows count on the selected location button ---
+                                val displayText = if (viewModel.searchTerm.isEmpty()) {
+                                    "Select location..."
+                                } else {
+                                    "${viewModel.searchTerm} (${townCounts[viewModel.searchTerm] ?: 0})"
+                                }
+
                                 Text(
-                                    text = if (viewModel.searchTerm.isEmpty()) "Select location..." else viewModel.searchTerm,
+                                    text = displayText,
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = if (viewModel.searchTerm.isEmpty()) Color(0xFF9CA3AF) else Color.White
                                 )
+                                // -----------------------------------------------------------
                             }
                             if (viewModel.searchTerm.isNotEmpty()) {
                                 IconButton(
@@ -529,6 +542,7 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                         } else {
                             uniqueTowns.forEach { town ->
                                 DropdownMenuItem(
+                                    // --- ALREADY IMPLEMENTED (Ensuring it matches): ---
                                     text = { Text("$town (${townCounts[town] ?: 0})") },
                                     onClick = {
                                         viewModel.searchTerm = town
@@ -543,7 +557,8 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                         }
                     }
                 }
-                //
+
+                // end of Search dropdown
 
                 //CHANGE Spacer(modifier = Modifier.height(12.dp))
                 Spacer(modifier = Modifier.height(if (isLandscape) 4.dp else 12.dp))
