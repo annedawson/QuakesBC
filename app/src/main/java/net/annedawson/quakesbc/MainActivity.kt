@@ -3,14 +3,14 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Wednesday 15th April 2026, 9:59 PT
+Last updated: Thursday 16th April 2026, 14:22 PT
 Date started: Friday 5th December 2025
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Commit: #19 - shows count of earthquakes on the selected location name
-        as well as the location name in the dropdown list
+Commit #21 - AI updated library dependencies
+        and set compileSdk and targetSdk to 37
 
  */
 
