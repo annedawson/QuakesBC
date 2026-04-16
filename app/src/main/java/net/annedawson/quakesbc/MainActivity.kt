@@ -38,7 +38,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -117,7 +125,7 @@ class EarthquakeViewModel : ViewModel() {
         private set
 
     var searchTerm by mutableStateOf("")
-    var minMagnitude by mutableStateOf(0.0)
+    var minMagnitude by mutableDoubleStateOf(0.0)
     var timeFilter by mutableStateOf("day")
     var sortBy by mutableStateOf("time")
     var sortOrder by mutableStateOf("desc")
@@ -127,7 +135,7 @@ class EarthquakeViewModel : ViewModel() {
     var showList by mutableStateOf(true)
     var lastUpdate by mutableStateOf<Date?>(null)
 
-    var maxResults by mutableStateOf(500)
+    var maxResults by mutableIntStateOf(500)
         private set
 
     private val westCanadaBounds = mapOf(
@@ -258,11 +266,6 @@ class EarthquakeViewModel : ViewModel() {
         }
     }
 
-    fun onSearchChange(term: String) {
-        searchTerm = term
-        filterAndSortQuakes()
-    }
-
     fun onMinMagnitudeChange(mag: Double) {
         minMagnitude = mag
         fetchEarthquakes()
@@ -319,18 +322,16 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                "earthquake_alerts",
-                "Earthquake Alerts",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Notifications for significant earthquakes"
-            }
-
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+        val channel = NotificationChannel(
+            "earthquake_alerts",
+            "Earthquake Alerts",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Notifications for significant earthquakes"
         }
+
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.createNotificationChannel(channel)
     }
 }
 
@@ -353,16 +354,12 @@ fun QuakeWatchWestTheme(content: @Composable () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
-    val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    /*LaunchedEffect(viewModel.filteredQuakes) {
-        viewModel.filteredQuakes.forEach { quake ->
-            if ((quake.properties.mag ?: 0.0) >= 5.5) {
-                showNotification(context, quake)
-            }
-        }
+    /*LaunchedEffect(viewModel.searchTerm) {
+        delay(150) // Wait 150ms after user stops typing
+        viewModel.filterAndSortQuakes()
     }*/
 
     // ── NEW: track whether the info screen is open ──────────────────────────
@@ -793,8 +790,8 @@ fun MapView(
     earthquakes: List<Feature>,
     selectedQuake: Feature?,
     onQuakeSelected: (Feature) -> Unit,
-    selectedFromList: Boolean = false,
     modifier: Modifier = Modifier,
+    selectedFromList: Boolean = false,
     centerLocation: LatLng? = null
 ) {
     // Western Canada center coordinates (BC focus)
@@ -970,7 +967,7 @@ fun MapView(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "M${String.format("%.1f", quake.properties.mag ?: 0.0)}",
+                            text = "M${String.format(Locale.US, "%.1f", quake.properties.mag ?: 0.0)}",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -989,8 +986,8 @@ fun MapView(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     DetailRow("Time", formatTime(quake.properties.time))
-                    DetailRow("Depth", "${String.format("%.1f", quake.geometry.coordinates.getOrNull(2) ?: 0.0)} km")
-                    DetailRow("Coordinates", "${String.format("%.4f", quake.geometry.coordinates[1])}°, ${String.format("%.4f", quake.geometry.coordinates[0])}°")
+                    DetailRow("Depth", "${String.format(Locale.US, "%.1f", quake.geometry.coordinates.getOrNull(2) ?: 0.0)} km")
+                    DetailRow("Coordinates", "${String.format(Locale.US, "%.4f", quake.geometry.coordinates[1])}°, ${String.format(Locale.US, "%.4f", quake.geometry.coordinates[0])}°")
 
                     quake.properties.felt?.let { felt ->
                         DetailRow("Felt Reports", "$felt people")
@@ -1414,7 +1411,7 @@ fun EarthquakeCard(quake: Feature, isSelected: Boolean, onClick: () -> Unit) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "M${String.format("%.1f", quake.properties.mag ?: 0.0)}",
+                        text = "M${String.format(Locale.US, "%.1f", quake.properties.mag ?: 0.0)}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -1443,6 +1440,7 @@ fun EarthquakeCard(quake: Feature, isSelected: Boolean, onClick: () -> Unit) {
                 Text(
                     text = "Depth: ${
                         String.format(
+                            Locale.US,
                             "%.1f",
                             quake.geometry.coordinates.getOrNull(2) ?: 0.0
                         )
@@ -1470,10 +1468,11 @@ fun EarthquakeCard(quake: Feature, isSelected: Boolean, onClick: () -> Unit) {
                         "Coordinates",
                         "${
                             String.format(
+                                Locale.US,
                                 "%.4f",
                                 quake.geometry.coordinates[1]
                             )
-                        }, ${String.format("%.4f", quake.geometry.coordinates[0])}"
+                        }, ${String.format(Locale.US, "%.4f", quake.geometry.coordinates[0])}"
                     )
                     DetailRow(
                         "Date",
@@ -1543,6 +1542,7 @@ fun showNotification(context: Context, quake: Feature) {
         .setContentText(
             "M${
                 String.format(
+                    Locale.US,
                     "%.1f",
                     quake.properties.mag ?: 0.0
                 )
