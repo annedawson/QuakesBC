@@ -3,14 +3,13 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Thursday 16th April 2026, 14:22 PT
+Last updated: Friday 17th April 2026, 11:56 PT
 Date started: Friday 5th December 2025
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Commit #21 - AI updated library dependencies
-        and set compileSdk and targetSdk to 37
+Commit #22 - All Build Output warnings have now been rectified.
 
  */
 
@@ -38,7 +37,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -1237,7 +1236,7 @@ fun InfoScreen(onBack: () -> Unit) {
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
