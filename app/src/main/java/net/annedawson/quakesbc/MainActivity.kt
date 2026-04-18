@@ -3,13 +3,13 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Friday 17th April 2026, 11:56 PT
+Last updated: Saturday 18th April 2026, 13:33 PT
 Date started: Friday 5th December 2025
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Commit #22 - All Build Output warnings have now been rectified.
+Commit #23 - improved UI in landscape orientation
 
  */
 
@@ -54,6 +54,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -409,17 +410,33 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                         Spacer(modifier = Modifier.width(12.dp)) // unchanged for landscape
 
 
-                        Column {
-                            Text(
-                                text = "QuakesBC",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Western Canada Earthquake Monitor",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFFD1D5DB)
-                            )
+                        if (isLandscape) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "QuakesBC",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Text(
+                                    text = "Western Canada Earthquake Monitor",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFFD1D5DB)
+                                )
+                            }
+                        } else {
+                            Column {
+                                Text(
+                                    text = "QuakesBC",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Western Canada Earthquake Monitor",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFFD1D5DB)
+                                )
+                            }
                         }
                     }
 
@@ -461,95 +478,145 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                     townCounts.keys.sorted()
                 }
 
-                Column {
-                    OutlinedButton(
-                        onClick = { expanded = !expanded },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color(0xFF1F2937),
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Row(
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        OutlinedButton(
+                            onClick = { expanded = !expanded },
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color(0xFF1F2937),
+                                contentColor = Color.White
+                            ),
+                            contentPadding = PaddingValues(horizontal = 8.dp)
                         ) {
                             Row(
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+
+                                    val displayText = if (viewModel.searchTerm.isEmpty()) {
+                                        "Select location..."
+                                    } else {
+                                        "${viewModel.searchTerm} (${townCounts[viewModel.searchTerm] ?: 0})"
+                                    }
+
+                                    Text(
+                                        text = displayText,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = if (viewModel.searchTerm.isEmpty()) Color(0xFF9CA3AF) else Color.White,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                if (viewModel.searchTerm.isNotEmpty()) {
+                                    IconButton(
+                                        onClick = {
+                                            viewModel.searchTerm = ""
+                                            viewModel.filterAndSortQuakes()
+                                        },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Clear",
+                                            tint = Color(0xFFFBBF24),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
                                 Icon(
-                                    imageVector = Icons.Default.Search,
+                                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                                     contentDescription = null,
                                     modifier = Modifier.size(20.dp)
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-
-                                // --- UPDATED: Shows count on the selected location button ---
-                                val displayText = if (viewModel.searchTerm.isEmpty()) {
-                                    "Select location..."
-                                } else {
-                                    "${viewModel.searchTerm} (${townCounts[viewModel.searchTerm] ?: 0})"
-                                }
-
-                                Text(
-                                    text = displayText,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = if (viewModel.searchTerm.isEmpty()) Color(0xFF9CA3AF) else Color.White
-                                )
-                                // -----------------------------------------------------------
                             }
-                            if (viewModel.searchTerm.isNotEmpty()) {
-                                IconButton(
-                                    onClick = {
-                                        viewModel.searchTerm = ""
-                                        viewModel.filterAndSortQuakes()
-                                    },
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Clear",
-                                        tint = Color(0xFFFBBF24),
-                                        modifier = Modifier.size(24.dp)
+                        }
+
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier
+                                .fillMaxWidth(0.9f)
+                                .heightIn(max = 400.dp)
+                        ) {
+                            if (uniqueTowns.isEmpty()) {
+                                DropdownMenuItem(
+                                    text = { Text("No locations available") },
+                                    onClick = { }
+                                )
+                            } else {
+                                uniqueTowns.forEach { town ->
+                                    DropdownMenuItem(
+                                        text = { Text("$town (${townCounts[town] ?: 0})") },
+                                        onClick = {
+                                            viewModel.searchTerm = town
+                                            viewModel.filterAndSortQuakes()
+                                            viewModel.showList = false
+                                            viewModel.showFilters = false
+                                            viewModel.selectedQuake = null
+                                            expanded = false
+                                        }
                                     )
                                 }
                             }
-                            Icon(
-                                imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                contentDescription = null
-                            )
                         }
                     }
 
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                        modifier = Modifier
-                            .fillMaxWidth(0.9f)
-                            .heightIn(max = 400.dp)
-                    ) {
-                        if (uniqueTowns.isEmpty()) {
-                            DropdownMenuItem(
-                                text = { Text("No locations available") },
-                                onClick = { }
+                    if (isLandscape) {
+                        TextButton(
+                            onClick = { viewModel.showFilters = !viewModel.showFilters },
+                            colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD1D5DB)),
+                            contentPadding = PaddingValues(horizontal = 4.dp)
+                        ) {
+                            Text(
+                                text = if (viewModel.showFilters) "Hide Filters" else "Display Filters",
+                                style = MaterialTheme.typography.bodySmall
                             )
-                        } else {
-                            uniqueTowns.forEach { town ->
-                                DropdownMenuItem(
-                                    // --- ALREADY IMPLEMENTED (Ensuring it matches): ---
-                                    text = { Text("$town (${townCounts[town] ?: 0})") },
-                                    onClick = {
-                                        viewModel.searchTerm = town
-                                        viewModel.filterAndSortQuakes()
-                                        viewModel.showList = false
-                                        viewModel.showFilters = false
-                                        viewModel.selectedQuake = null
-                                        expanded = false
-                                    }
-                                )
-                            }
+                            Icon(
+                                imageVector = if (viewModel.showFilters) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+
+                        TextButton(
+                            onClick = { viewModel.showList = !viewModel.showList },
+                            colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD1D5DB)),
+                            contentPadding = PaddingValues(horizontal = 4.dp)
+                        ) {
+                            Text(
+                                text = if (viewModel.showList) "Hide List" else "Display List",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Icon(
+                                imageVector = if (viewModel.showList) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+
+                        viewModel.lastUpdate?.let { lastUpdate ->
+                            Text(
+                                text = "Last updated: ${SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(lastUpdate)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF9CA3AF),
+                                modifier = Modifier.padding(start = 4.dp)
+                            )
                         }
                     }
                 }
@@ -557,52 +624,40 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                 // end of Search dropdown
 
                 //CHANGE Spacer(modifier = Modifier.height(12.dp))
-                Spacer(modifier = Modifier.height(if (isLandscape) 4.dp else 12.dp))
+                if (!isLandscape) {
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    /*TextButton(
-                        onClick = { viewModel.showFilters = !viewModel.showFilters },
-                        colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD1D5DB))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Filters & Sorting")
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = if (viewModel.showFilters) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }*/
+                        TextButton(
+                            onClick = { viewModel.showFilters = !viewModel.showFilters },
+                            colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD1D5DB))
+                        ) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            //Text("Filters & Sorting")
+                            Text(if (viewModel.showFilters) "Hide Filters" else "Display Filters")
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = if (viewModel.showFilters) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
 
-                    TextButton(
-                        onClick = { viewModel.showFilters = !viewModel.showFilters },
-                        colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD1D5DB))
-                    ) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        //Text("Filters & Sorting")
-                        Text(if (viewModel.showFilters) "Hide Filters" else "Display Filters")
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = if (viewModel.showFilters) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-
-                    TextButton(
-                        onClick = { viewModel.showList = !viewModel.showList },
-                        colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD1D5DB))
-                    ) {
-                        Text(if (viewModel.showList) "Hide List" else "Display List")
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = if (viewModel.showList) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
+                        TextButton(
+                            onClick = { viewModel.showList = !viewModel.showList },
+                            colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD1D5DB))
+                        ) {
+                            Text(if (viewModel.showList) "Hide List" else "Display List")
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = if (viewModel.showList) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                 }
 
