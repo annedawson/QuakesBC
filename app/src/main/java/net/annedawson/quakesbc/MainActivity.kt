@@ -47,6 +47,11 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.layout.AnimatedPane
+import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
+import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
+import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -351,16 +356,17 @@ fun QuakeWatchWestTheme(content: @Composable () -> Unit) {
 }
 
 // Main App Composable
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val scope = rememberCoroutineScope()
 
-    /*LaunchedEffect(viewModel.searchTerm) {
-        delay(150) // Wait 150ms after user stops typing
-        viewModel.filterAndSortQuakes()
-    }*/
+    val navigator = rememberListDetailPaneScaffoldNavigator<Feature>()
+
+    // Use navigator to handle back press when in detail view on small screens
+    // No explicit BackHandler needed as navigator.navigateBack() is usually called by UI
 
     // ── NEW: track whether the info screen is open ──────────────────────────
     var showInfoScreen by remember { mutableStateOf(false) }
@@ -393,21 +399,15 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        /*Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = Color(0xFFFBBF24),
-                            modifier = Modifier.size(32.dp)
-                        )*/
                         Icon(
                             imageVector = Icons.Default.Warning,
                             contentDescription = "App information",
                             tint = Color(0xFFFBBF24),
                             modifier = Modifier
                                 .size(32.dp)
-                                .clickable { showInfoScreen = true }   // ← new
+                                .clickable { showInfoScreen = true }
                         )
-                        Spacer(modifier = Modifier.width(12.dp)) // unchanged for landscape
+                        Spacer(modifier = Modifier.width(12.dp))
 
 
                         if (isLandscape) {
@@ -452,15 +452,8 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                     }
                 }
 
-                //CHANGE Spacer(modifier = Modifier.height(16.dp))
                 Spacer(modifier = Modifier.height(if (isLandscape) 6.dp else 16.dp))
 
-
-                // was an OutlinedTextField
-
-                // Search dropdown
-
-                // ... inside QuakesBCApp Scaffold topBar ...
 
 // Search dropdown
                 var expanded by remember { mutableStateOf(false) }
@@ -621,9 +614,6 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                     }
                 }
 
-                // end of Search dropdown
-
-                //CHANGE Spacer(modifier = Modifier.height(12.dp))
                 if (!isLandscape) {
                     Spacer(modifier = Modifier.height(12.dp))
 
@@ -636,7 +626,6 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                             colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD1D5DB))
                         ) {
                             Spacer(modifier = Modifier.width(8.dp))
-                            //Text("Filters & Sorting")
                             Text(if (viewModel.showFilters) "Hide Filters" else "Display Filters")
                             Spacer(modifier = Modifier.width(4.dp))
                             Icon(
@@ -662,7 +651,6 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                 }
 
                 if (viewModel.showFilters) {
-                    //CHANGE Spacer(modifier = Modifier.height(12.dp))
                     Spacer(modifier = Modifier.height(if (isLandscape) 6.dp else 12.dp))
 
                     Row(
@@ -675,7 +663,6 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color(0xFF9CA3AF)
                             )
-                            // CHANGE Spacer(modifier = Modifier.height(4.dp))
                             Spacer(modifier = Modifier.height(if (isLandscape) 4.dp else 8.dp))
 
                             FilterDropdown(
@@ -753,24 +740,6 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                     }
                 }
 
-
-                /*  viewModel.lastUpdate?.let { lastUpdate ->
-                      Spacer(modifier = Modifier.height(8.dp))
-                      Text(
-                          text = "Last updated: ${
-                              SimpleDateFormat(
-                                  "HH:mm:ss",
-                                  Locale.getDefault()
-                              ).format(lastUpdate)
-                          }",
-                          style = MaterialTheme.typography.labelSmall,
-                          color = Color(0xFF9CA3AF)
-                      )
-                  }*/
-
-                //CHANGE
-
-                // Last updated — hide in landscape to save space:
                 if (!isLandscape) {
                     Spacer(modifier = Modifier.height(8.dp))
                     viewModel.lastUpdate?.let { lastUpdate ->
@@ -781,59 +750,181 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                         )
                     }
                 }
-
-
             }
         }
-        // delete below
     ) { paddingValues ->
-        Box(
+        ListDetailPaneScaffold(
+            directive = navigator.scaffoldDirective,
+            value = navigator.scaffoldValue,
+            listPane = {
+                AnimatedPane {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        MapView(
+                            earthquakes = viewModel.filteredQuakes,
+                            selectedQuake = viewModel.selectedQuake,
+                            onQuakeSelected = { quake ->
+                                viewModel.selectedFromList = false
+                                viewModel.selectedQuake = if (viewModel.selectedQuake == quake) null else quake
+                                // On small screens, navigate to detail
+                                if (navigator.scaffoldDirective.maxHorizontalPartitions < 2) {
+                                    scope.launch {
+                                        navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, quake)
+                                    }
+                                }
+                            },
+                            selectedFromList = viewModel.selectedFromList,
+                            modifier = Modifier.fillMaxSize(),
+                            centerLocation = if (viewModel.searchTerm.isNotEmpty())
+                                viewModel.getAverageLocationForFiltered()
+                            else
+                                null
+                        )
+
+                        if (viewModel.showList) {
+                            Card(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(if (isLandscape) 8.dp else 16.dp)
+                                    .width(if (isLandscape) 300.dp else 350.dp)
+                                    .heightIn(max = if (isLandscape) 180.dp else 450.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Color(0xFF1F2937).copy(alpha = 0.95f)
+                                ),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                            ) {
+                                EarthquakeList(
+                                    viewModel = viewModel,
+                                    onQuakeSelected = { quake ->
+                                        viewModel.selectedFromList = true
+                                        viewModel.selectedQuake = if (viewModel.selectedQuake == quake) null else quake
+                                        if (navigator.scaffoldDirective.maxHorizontalPartitions < 2) {
+                                            scope.launch {
+                                                navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, quake)
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            detailPane = {
+                AnimatedPane {
+                    val quake = navigator.currentDestination?.contentKey ?: viewModel.selectedQuake
+                    if (quake != null) {
+                        DetailScreen(
+                            quake = quake,
+                            onBack = {
+                                if (navigator.canNavigateBack()) {
+                                    scope.launch {
+                                        navigator.navigateBack()
+                                    }
+                                }
+                            }
+                        )
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("Select an earthquake to see details", color = Color.Gray)
+                        }
+                    }
+                }
+            },
+            modifier = Modifier.padding(paddingValues)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DetailScreen(quake: Feature, onBack: () -> Unit) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Quake Details") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF1F2937),
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
+            )
+        },
+        containerColor = Color(0xFF111827)
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Full-screen map
-            MapView(
-                earthquakes = viewModel.filteredQuakes,
-                selectedQuake = viewModel.selectedQuake,
-                onQuakeSelected = { quake ->
-                    viewModel.selectedFromList = false
-                    viewModel.selectedQuake = if (viewModel.selectedQuake == quake) null else quake
-                },
-                selectedFromList = viewModel.selectedFromList,
-                modifier = Modifier.fillMaxSize(),
-                centerLocation = if (viewModel.searchTerm.isNotEmpty())
-                    viewModel.getAverageLocationForFiltered()
-                else
-                    null
-            )
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2937))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(getMagnitudeColor(quake.properties.mag ?: 0.0))
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "M${String.format(Locale.US, "%.1f", quake.properties.mag ?: 0.0)}",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
 
-            // Floating earthquake list card (bottom right)
-            if (viewModel.showList) {
-                Card(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(if (isLandscape) 8.dp else 16.dp)
-                        .width(if (isLandscape) 300.dp else 350.dp)
-                        .heightIn(max = if (isLandscape) 180.dp else 450.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF1F2937).copy(alpha = 0.95f)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-                ) {
-                    EarthquakeList(
-                        viewModel = viewModel,
-                        modifier = Modifier.fillMaxWidth()
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = quake.properties.place ?: "Unknown location",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.White
                     )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider(color = Color(0xFF374151))
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    DetailRowLarge("Time", SimpleDateFormat("MMM dd, yyyy HH:mm:ss", Locale.getDefault()).format(Date(quake.properties.time)))
+                    DetailRowLarge("Depth", "${String.format(Locale.US, "%.1f", quake.geometry.coordinates.getOrNull(2) ?: 0.0)} km")
+                    DetailRowLarge("Coordinates", "${String.format(Locale.US, "%.4f", quake.geometry.coordinates[1])}°, ${String.format(Locale.US, "%.4f", quake.geometry.coordinates[0])}°")
+
+                    quake.properties.felt?.let { felt ->
+                        DetailRowLarge("Felt Reports", "$felt people")
+                    }
                 }
-
-                // end of card
-
-
             }
         }
     }
+}
 
+@Composable
+fun DetailRowLarge(label: String, value: String) {
+    Row(modifier = Modifier.padding(vertical = 4.dp)) {
+        Text(
+            text = "$label: ",
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color(0xFF9CA3AF),
+            modifier = Modifier.width(120.dp)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color.White,
+            modifier = Modifier.weight(1f)
+        )
+    }
 }
 
 
@@ -1136,7 +1227,11 @@ fun MagnitudeLegendItem(color: Color, label: String) {
 }
 
 @Composable
-fun EarthquakeList(viewModel: EarthquakeViewModel, modifier: Modifier = Modifier) {
+fun EarthquakeList(
+    viewModel: EarthquakeViewModel,
+    onQuakeSelected: (Feature) -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(
         modifier = modifier
             .background(Color(0xFF1F2937))
@@ -1159,8 +1254,6 @@ fun EarthquakeList(viewModel: EarthquakeViewModel, modifier: Modifier = Modifier
                 color = Color(0xFF9CA3AF)
             )
         }
-
-        // add code here
 
         // Add this warning if results are limited
         if (viewModel.earthquakes.size > viewModel.maxResults) {
@@ -1191,10 +1284,6 @@ fun EarthquakeList(viewModel: EarthquakeViewModel, modifier: Modifier = Modifier
                 }
             }
         }
-
-        // end of added code
-
-
 
         when {
             viewModel.loading -> {
@@ -1266,11 +1355,7 @@ fun EarthquakeList(viewModel: EarthquakeViewModel, modifier: Modifier = Modifier
                         EarthquakeCard(
                             quake = quake,
                             isSelected = viewModel.selectedQuake == quake,
-                            onClick = {
-                                viewModel.selectedFromList = true
-                                viewModel.selectedQuake =
-                                    if (viewModel.selectedQuake == quake) null else quake
-                            }
+                            onClick = { onQuakeSelected(quake) }
                         )
                     }
                 }
