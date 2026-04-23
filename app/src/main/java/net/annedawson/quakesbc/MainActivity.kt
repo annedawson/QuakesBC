@@ -3,13 +3,15 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Saturday 18th April 2026, 13:33 PT
+Last updated: Thursday 23rd April 2026, 12:48 PT
 Date started: Friday 5th December 2025
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Commit #23 - improved UI in landscape orientation
+Commit #25: Using the Material 3 Adaptive library in Compose
+            to handle orientation changes in the app on different devices.
+            Slight update to UI.
 
  */
 
@@ -135,7 +137,6 @@ class EarthquakeViewModel : ViewModel() {
     var sortBy by mutableStateOf("time")
     var sortOrder by mutableStateOf("desc")
     var selectedQuake by mutableStateOf<Feature?>(null)
-    var selectedFromList by mutableStateOf(false)
     var showFilters by mutableStateOf(false)
     var showList by mutableStateOf(true)
     var lastUpdate by mutableStateOf<Date?>(null)
@@ -763,16 +764,14 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                             earthquakes = viewModel.filteredQuakes,
                             selectedQuake = viewModel.selectedQuake,
                             onQuakeSelected = { quake ->
-                                viewModel.selectedFromList = false
-                                viewModel.selectedQuake = if (viewModel.selectedQuake == quake) null else quake
-                                // On small screens, navigate to detail
-                                if (navigator.scaffoldDirective.maxHorizontalPartitions < 2) {
+                                val isNewSelection = viewModel.selectedQuake != quake
+                                viewModel.selectedQuake = if (isNewSelection) quake else null
+                                if (isNewSelection && navigator.scaffoldDirective.maxHorizontalPartitions < 2) {
                                     scope.launch {
                                         navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, quake)
                                     }
                                 }
                             },
-                            selectedFromList = viewModel.selectedFromList,
                             modifier = Modifier.fillMaxSize(),
                             centerLocation = if (viewModel.searchTerm.isNotEmpty())
                                 viewModel.getAverageLocationForFiltered()
@@ -795,9 +794,9 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                                 EarthquakeList(
                                     viewModel = viewModel,
                                     onQuakeSelected = { quake ->
-                                        viewModel.selectedFromList = true
-                                        viewModel.selectedQuake = if (viewModel.selectedQuake == quake) null else quake
-                                        if (navigator.scaffoldDirective.maxHorizontalPartitions < 2) {
+                                        val isNewSelection = viewModel.selectedQuake != quake
+                                        viewModel.selectedQuake = if (isNewSelection) quake else null
+                                        if (isNewSelection && navigator.scaffoldDirective.maxHorizontalPartitions < 2) {
                                             scope.launch {
                                                 navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, quake)
                                             }
@@ -936,7 +935,6 @@ fun MapView(
     selectedQuake: Feature?,
     onQuakeSelected: (Feature) -> Unit,
     modifier: Modifier = Modifier,
-    selectedFromList: Boolean = false,
     centerLocation: LatLng? = null
 ) {
     // Western Canada center coordinates (BC focus)
@@ -1066,80 +1064,7 @@ fun MapView(
             }
         }
 
-        // Selected earthquake info card (top right) — only shown for map selections
-        if (!selectedFromList) selectedQuake?.let { quake ->
-            Card(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
-                    .width(280.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF111827).copy(alpha = 0.95f)
-                )
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Details",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        IconButton(
-                            onClick = { onQuakeSelected(quake) },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Close",
-                                tint = Color(0xFF9CA3AF)
-                            )
-                        }
-                    }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Magnitude
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(16.dp)
-                                .clip(CircleShape)
-                                .background(getMagnitudeColor(quake.properties.mag ?: 0.0))
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "M${String.format(Locale.US, "%.1f", quake.properties.mag ?: 0.0)}",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = quake.properties.place ?: "Unknown location",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFFD1D5DB)
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    HorizontalDivider(color = Color(0xFF374151))
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    DetailRow("Time", formatTime(quake.properties.time))
-                    DetailRow("Depth", "${String.format(Locale.US, "%.1f", quake.geometry.coordinates.getOrNull(2) ?: 0.0)} km")
-                    DetailRow("Coordinates", "${String.format(Locale.US, "%.4f", quake.geometry.coordinates[1])}°, ${String.format(Locale.US, "%.4f", quake.geometry.coordinates[0])}°")
-
-                    quake.properties.felt?.let { felt ->
-                        DetailRow("Felt Reports", "$felt people")
-                    }
-                }
-            }
-        }
     }
 }
 
