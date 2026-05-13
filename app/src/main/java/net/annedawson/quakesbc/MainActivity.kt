@@ -3,15 +3,15 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Thursday 23rd April 2026, 12:48 PT
-Date started: Friday 5th December 2025
+Last updated: Wednesday 13th May 2026, 16:54 PT
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Commit #25: Using the Material 3 Adaptive library in Compose
+Commit #26: Using the Material 3 Adaptive library in Compose
             to handle orientation changes in the app on different devices.
-            Slight update to UI.
+            When an earthquake is selected from the list,
+            the map centres on that location.
 
  */
 
@@ -373,7 +373,7 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
     var showInfoScreen by remember { mutableStateOf(false) }
 
     if (showInfoScreen) {
-        InfoScreen(onBack = { showInfoScreen = false })
+        InfoScreen(onBack = {showInfoScreen = false })
         return   // don't render the rest of the app while info screen is open
     }
     // ────────────────────────────────────────────────────────────────────────
@@ -766,14 +766,22 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                             onQuakeSelected = { quake ->
                                 val isNewSelection = viewModel.selectedQuake != quake
                                 viewModel.selectedQuake = if (isNewSelection) quake else null
-                                if (isNewSelection && navigator.scaffoldDirective.maxHorizontalPartitions < 2) {
+                                if (isNewSelection) {
                                     scope.launch {
                                         navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, quake)
+                                    }
+                                } else {
+                                    if (navigator.canNavigateBack()) {
+                                        scope.launch {
+                                            navigator.navigateBack()
+                                        }
                                     }
                                 }
                             },
                             modifier = Modifier.fillMaxSize(),
-                            centerLocation = if (viewModel.searchTerm.isNotEmpty())
+                            centerLocation = viewModel.selectedQuake?.let {
+                                LatLng(it.geometry.coordinates[1], it.geometry.coordinates[0])
+                            } ?: if (viewModel.searchTerm.isNotEmpty())
                                 viewModel.getAverageLocationForFiltered()
                             else
                                 null
@@ -796,9 +804,9 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                                     onQuakeSelected = { quake ->
                                         val isNewSelection = viewModel.selectedQuake != quake
                                         viewModel.selectedQuake = if (isNewSelection) quake else null
-                                        if (isNewSelection && navigator.scaffoldDirective.maxHorizontalPartitions < 2) {
+                                        if (navigator.canNavigateBack()) {
                                             scope.launch {
-                                                navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, quake)
+                                                navigator.navigateBack()
                                             }
                                         }
                                     },
@@ -811,7 +819,7 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
             },
             detailPane = {
                 AnimatedPane {
-                    val quake = navigator.currentDestination?.contentKey ?: viewModel.selectedQuake
+                    val quake = navigator.currentDestination?.contentKey
                     if (quake != null) {
                         DetailScreen(
                             quake = quake,
