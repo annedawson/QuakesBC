@@ -3,15 +3,14 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Wednesday 13th May 2026, 16:54 PT
+Last updated: Saturday 16th May 2026, 13:08 PT
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Commit #26: Using the Material 3 Adaptive library in Compose
+Commit #27: Using the Material 3 Adaptive library in Compose
             to handle orientation changes in the app on different devices.
-            When an earthquake is selected from the list,
-            the map centres on that location.
+
 
  */
 
@@ -391,41 +390,109 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                     .fillMaxWidth()
                     .background(Color(0xFF1E3A8A))
                     .statusBarsPadding()
-                    //CHANGE .padding(16.dp)
-                    .padding(horizontal = 16.dp, vertical = if (isLandscape) 4.dp else 16.dp)
+                    .padding(horizontal = 16.dp, vertical = if (isLandscape) 8.dp else 12.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                if (isLandscape) {
+                    // Optimized Landscape Header: Compact and informative
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Warning,
                             contentDescription = "App information",
                             tint = Color(0xFFFBBF24),
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(24.dp)
                                 .clickable { showInfoScreen = true }
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "QuakesBC",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
 
+                        // Compact search dropdown
+                        SearchDropdown(
+                            viewModel = viewModel,
+                            modifier = Modifier.weight(1f)
+                        )
 
-                        if (isLandscape) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "QuakesBC",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Text(
-                                    text = "Western Canada Earthquake Monitor",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color(0xFFD1D5DB)
+                        // Quick toggle buttons
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(
+                                onClick = { viewModel.showFilters = !viewModel.showFilters },
+                                colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD1D5DB))
+                            ) {
+                                Text(if (viewModel.showFilters) "Hide Filters" else "Filters", style = MaterialTheme.typography.bodySmall)
+                                Icon(
+                                    imageVector = if (viewModel.showFilters) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
                                 )
                             }
-                        } else {
+                            TextButton(
+                                onClick = { viewModel.showList = !viewModel.showList },
+                                colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD1D5DB))
+                            ) {
+                                Text(if (viewModel.showList) "Hide List" else "List", style = MaterialTheme.typography.bodySmall)
+                                Icon(
+                                    imageVector = if (viewModel.showList) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+
+                        viewModel.lastUpdate?.let { lastUpdate ->
+                            Text(
+                                text = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(lastUpdate),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFFD1D5DB)
+                            )
+                        }
+
+                        IconButton(
+                            onClick = { viewModel.fetchEarthquakes() },
+                            enabled = !viewModel.loading,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(Icons.Default.Refresh, "Refresh", tint = Color.White, modifier = Modifier.size(20.dp))
+                        }
+                    }
+
+                    if (viewModel.showFilters) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(modifier = Modifier.weight(1f)) { FilterDropdown(viewModel.timeFilter, listOf("hour" to "Last Hour", "day" to "Last Day", "week" to "Last Week", "month" to "Last Month", "year" to "Last Year"), { viewModel.onTimeFilterChange(it) }) }
+                            Box(modifier = Modifier.weight(1f)) { FilterDropdown(viewModel.minMagnitude.toString(), listOf("0.0" to "All (0.0+)", "1.0" to "1.0+", "2.0" to "2.0+", "3.0" to "3.0+", "4.0" to "4.0+", "5.0" to "5.0+"), { viewModel.onMinMagnitudeChange(it.toDouble()) }) }
+                            Box(modifier = Modifier.weight(1f)) { FilterDropdown(viewModel.sortBy, listOf("time" to "Time", "magnitude" to "Magnitude", "depth" to "Depth"), { viewModel.onSortByChange(it) }) }
+                            Box(modifier = Modifier.weight(1f)) { FilterDropdown(viewModel.sortOrder, listOf("desc" to "Descending", "asc" to "Ascending"), { viewModel.onSortOrderChange(it) }) }
+                        }
+                    }
+                } else {
+                    // Portrait Layout
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = "App information",
+                                tint = Color(0xFFFBBF24),
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clickable { showInfoScreen = true }
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
                                     text = "QuakesBC",
@@ -439,185 +506,15 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                                 )
                             }
                         }
-                    }
-
-                    IconButton(
-                        onClick = { viewModel.fetchEarthquakes() },
-                        enabled = !viewModel.loading
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Refresh",
-                            tint = Color.White
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(if (isLandscape) 6.dp else 16.dp))
-
-
-// Search dropdown
-                var expanded by remember { mutableStateOf(false) }
-                val townCounts = remember(viewModel.earthquakes) {
-                    viewModel.earthquakes
-                        .mapNotNull { it.properties.place }
-                        .map { place ->
-                            val parts = place.split(" of ")
-                            if (parts.size > 1) parts[1].trim() else place.trim()
-                        }
-                        .groupingBy { it }
-                        .eachCount()
-                }
-                val uniqueTowns = remember(townCounts) {
-                    townCounts.keys.sorted()
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        OutlinedButton(
-                            onClick = { expanded = !expanded },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color(0xFF1F2937),
-                                contentColor = Color.White
-                            ),
-                            contentPadding = PaddingValues(horizontal = 8.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    modifier = Modifier.weight(1f),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Search,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-
-                                    val displayText = if (viewModel.searchTerm.isEmpty()) {
-                                        "Select location..."
-                                    } else {
-                                        "${viewModel.searchTerm} (${townCounts[viewModel.searchTerm] ?: 0})"
-                                    }
-
-                                    Text(
-                                        text = displayText,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = if (viewModel.searchTerm.isEmpty()) Color(0xFF9CA3AF) else Color.White,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                                if (viewModel.searchTerm.isNotEmpty()) {
-                                    IconButton(
-                                        onClick = {
-                                            viewModel.searchTerm = ""
-                                            viewModel.filterAndSortQuakes()
-                                        },
-                                        modifier = Modifier.size(32.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "Clear",
-                                            tint = Color(0xFFFBBF24),
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
-                                Icon(
-                                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false },
-                            modifier = Modifier
-                                .fillMaxWidth(0.9f)
-                                .heightIn(max = 400.dp)
-                        ) {
-                            if (uniqueTowns.isEmpty()) {
-                                DropdownMenuItem(
-                                    text = { Text("No locations available") },
-                                    onClick = { }
-                                )
-                            } else {
-                                uniqueTowns.forEach { town ->
-                                    DropdownMenuItem(
-                                        text = { Text("$town (${townCounts[town] ?: 0})") },
-                                        onClick = {
-                                            viewModel.searchTerm = town
-                                            viewModel.filterAndSortQuakes()
-                                            viewModel.showList = false
-                                            viewModel.showFilters = false
-                                            viewModel.selectedQuake = null
-                                            expanded = false
-                                        }
-                                    )
-                                }
-                            }
+                        IconButton(onClick = { viewModel.fetchEarthquakes() }, enabled = !viewModel.loading) {
+                            Icon(Icons.Default.Refresh, "Refresh", tint = Color.White)
                         }
                     }
 
-                    if (isLandscape) {
-                        TextButton(
-                            onClick = { viewModel.showFilters = !viewModel.showFilters },
-                            colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD1D5DB)),
-                            contentPadding = PaddingValues(horizontal = 4.dp)
-                        ) {
-                            Text(
-                                text = if (viewModel.showFilters) "Hide Filters" else "Display Filters",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                            Icon(
-                                imageVector = if (viewModel.showFilters) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    SearchDropdown(viewModel = viewModel)
 
-                        TextButton(
-                            onClick = { viewModel.showList = !viewModel.showList },
-                            colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD1D5DB)),
-                            contentPadding = PaddingValues(horizontal = 4.dp)
-                        ) {
-                            Text(
-                                text = if (viewModel.showList) "Hide List" else "Display List",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                            Icon(
-                                imageVector = if (viewModel.showList) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-
-                        viewModel.lastUpdate?.let { lastUpdate ->
-                            Text(
-                                text = "Last updated: ${SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(lastUpdate)}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF9CA3AF),
-                                modifier = Modifier.padding(start = 4.dp)
-                            )
-                        }
-                    }
-                }
-
-                if (!isLandscape) {
-                    Spacer(modifier = Modifier.height(12.dp))
-
+                    Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -626,22 +523,18 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                             onClick = { viewModel.showFilters = !viewModel.showFilters },
                             colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD1D5DB))
                         ) {
-                            Spacer(modifier = Modifier.width(8.dp))
                             Text(if (viewModel.showFilters) "Hide Filters" else "Display Filters")
-                            Spacer(modifier = Modifier.width(4.dp))
                             Icon(
                                 imageVector = if (viewModel.showFilters) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
-
                         TextButton(
                             onClick = { viewModel.showList = !viewModel.showList },
                             colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD1D5DB))
                         ) {
                             Text(if (viewModel.showList) "Hide List" else "Display List")
-                            Spacer(modifier = Modifier.width(4.dp))
                             Icon(
                                 imageVector = if (viewModel.showList) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                                 contentDescription = null,
@@ -649,101 +542,34 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                             )
                         }
                     }
-                }
 
-                if (viewModel.showFilters) {
-                    Spacer(modifier = Modifier.height(if (isLandscape) 6.dp else 12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Time Period",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF9CA3AF)
-                            )
-                            Spacer(modifier = Modifier.height(if (isLandscape) 4.dp else 8.dp))
-
-                            FilterDropdown(
-                                value = viewModel.timeFilter,
-                                options = listOf(
-                                    "hour" to "Last Hour",
-                                    "day" to "Last Day",
-                                    "week" to "Last Week",
-                                    "month" to "Last Month",
-                                    "year" to "Last Year"
-                                ),
-                                onValueChange = { viewModel.onTimeFilterChange(it) }
-                            )
+                    if (viewModel.showFilters) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Time Period", style = MaterialTheme.typography.labelSmall, color = Color(0xFF9CA3AF))
+                                FilterDropdown(viewModel.timeFilter, listOf("hour" to "Last Hour", "day" to "Last Day", "week" to "Last Week", "month" to "Last Month", "year" to "Last Year"), { viewModel.onTimeFilterChange(it) })
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Min Magnitude", style = MaterialTheme.typography.labelSmall, color = Color(0xFF9CA3AF))
+                                FilterDropdown(viewModel.minMagnitude.toString(), listOf("0.0" to "All (0.0+)", "1.0" to "1.0+", "2.0" to "2.0+", "3.0" to "3.0+", "4.0" to "4.0+", "5.0" to "5.0+"), { viewModel.onMinMagnitudeChange(it.toDouble()) })
+                            }
                         }
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Min Magnitude",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF9CA3AF)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            FilterDropdown(
-                                value = viewModel.minMagnitude.toString(),
-                                options = listOf(
-                                    "0.0" to "All (0.0+)",
-                                    "1.0" to "1.0+",
-                                    "2.0" to "2.0+",
-                                    "3.0" to "3.0+",
-                                    "4.0" to "4.0+",
-                                    "5.0" to "5.0+"
-                                ),
-                                onValueChange = { viewModel.onMinMagnitudeChange(it.toDouble()) }
-                            )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Sort By", style = MaterialTheme.typography.labelSmall, color = Color(0xFF9CA3AF))
+                                FilterDropdown(viewModel.sortBy, listOf("time" to "Time", "magnitude" to "Magnitude", "depth" to "Depth"), { viewModel.onSortByChange(it) })
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Order", style = MaterialTheme.typography.labelSmall, color = Color(0xFF9CA3AF))
+                                FilterDropdown(viewModel.sortOrder, listOf("desc" to "Descending", "asc" to "Ascending"), { viewModel.onSortOrderChange(it) })
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Sort By",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF9CA3AF)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            FilterDropdown(
-                                value = viewModel.sortBy,
-                                options = listOf(
-                                    "time" to "Time",
-                                    "magnitude" to "Magnitude",
-                                    "depth" to "Depth"
-                                ),
-                                onValueChange = { viewModel.onSortByChange(it) }
-                            )
-                        }
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Order",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF9CA3AF)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            FilterDropdown(
-                                value = viewModel.sortOrder,
-                                options = listOf("desc" to "Descending", "asc" to "Ascending"),
-                                onValueChange = { viewModel.onSortOrderChange(it) }
-                            )
-                        }
-                    }
-                }
-
-                if (!isLandscape) {
-                    Spacer(modifier = Modifier.height(8.dp))
                     viewModel.lastUpdate?.let { lastUpdate ->
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Last updated: ${SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(lastUpdate)}",
                             style = MaterialTheme.typography.labelSmall,
@@ -764,18 +590,9 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                             earthquakes = viewModel.filteredQuakes,
                             selectedQuake = viewModel.selectedQuake,
                             onQuakeSelected = { quake ->
-                                val isNewSelection = viewModel.selectedQuake != quake
-                                viewModel.selectedQuake = if (isNewSelection) quake else null
-                                if (isNewSelection) {
-                                    scope.launch {
-                                        navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, quake)
-                                    }
-                                } else {
-                                    if (navigator.canNavigateBack()) {
-                                        scope.launch {
-                                            navigator.navigateBack()
-                                        }
-                                    }
+                                viewModel.selectedQuake = quake
+                                scope.launch {
+                                    navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, quake)
                                 }
                             },
                             modifier = Modifier.fillMaxSize(),
@@ -787,13 +604,15 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                                 null
                         )
 
-                        if (viewModel.showList) {
+                        // In landscape, the list is moved to the detail pane when no detail is active.
+                        // In portrait, it remains a floating card over the map.
+                        if (viewModel.showList && !isLandscape) {
                             Card(
                                 modifier = Modifier
                                     .align(Alignment.BottomEnd)
-                                    .padding(if (isLandscape) 8.dp else 16.dp)
-                                    .width(if (isLandscape) 300.dp else 350.dp)
-                                    .heightIn(max = if (isLandscape) 180.dp else 450.dp),
+                                    .padding(16.dp)
+                                    .width(350.dp)
+                                    .heightIn(max = 450.dp),
                                 colors = CardDefaults.cardColors(
                                     containerColor = Color(0xFF1F2937).copy(alpha = 0.95f)
                                 ),
@@ -804,11 +623,6 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                                     onQuakeSelected = { quake ->
                                         val isNewSelection = viewModel.selectedQuake != quake
                                         viewModel.selectedQuake = if (isNewSelection) quake else null
-                                        if (navigator.canNavigateBack()) {
-                                            scope.launch {
-                                                navigator.navigateBack()
-                                            }
-                                        }
                                     },
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -831,6 +645,17 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                                 }
                             }
                         )
+                    } else if (isLandscape && viewModel.showList) {
+                        // In landscape, use the detail pane for the list if no quake is being detailed
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            EarthquakeList(
+                                viewModel = viewModel,
+                                onQuakeSelected = { selected ->
+                                    viewModel.selectedQuake = selected
+                                },
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
                     } else {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text("Select an earthquake to see details", color = Color.Gray)
@@ -1571,6 +1396,121 @@ fun DetailRow(label: String, value: String) {
             style = MaterialTheme.typography.bodySmall,
             color = Color.White
         )
+    }
+}
+
+@Composable
+fun SearchDropdown(
+    viewModel: EarthquakeViewModel,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val townCounts = remember(viewModel.earthquakes) {
+        viewModel.earthquakes
+            .mapNotNull { it.properties.place }
+            .map { place ->
+                val parts = place.split(" of ")
+                if (parts.size > 1) parts[1].trim() else place.trim()
+            }
+            .groupingBy { it }
+            .eachCount()
+    }
+    val uniqueTowns = remember(townCounts) {
+        townCounts.keys.sorted()
+    }
+
+    Column(modifier = modifier) {
+        OutlinedButton(
+            onClick = { expanded = !expanded },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = Color(0xFF1F2937),
+                contentColor = Color.White
+            ),
+            contentPadding = PaddingValues(horizontal = 8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    val displayText = if (viewModel.searchTerm.isEmpty()) {
+                        "Select location..."
+                    } else {
+                        "${viewModel.searchTerm} (${townCounts[viewModel.searchTerm] ?: 0})"
+                    }
+
+                    Text(
+                        text = displayText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (viewModel.searchTerm.isEmpty()) Color(0xFF9CA3AF) else Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (viewModel.searchTerm.isNotEmpty()) {
+                    IconButton(
+                        onClick = {
+                            viewModel.searchTerm = ""
+                            viewModel.filterAndSortQuakes()
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear",
+                            tint = Color(0xFFFBBF24),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .heightIn(max = 400.dp)
+        ) {
+            if (uniqueTowns.isEmpty()) {
+                DropdownMenuItem(
+                    text = { Text("No locations available") },
+                    onClick = { }
+                )
+            } else {
+                uniqueTowns.forEach { town ->
+                    DropdownMenuItem(
+                        text = { Text("$town (${townCounts[town] ?: 0})") },
+                        onClick = {
+                            viewModel.searchTerm = town
+                            viewModel.filterAndSortQuakes()
+                            viewModel.showList = false
+                            viewModel.showFilters = false
+                            viewModel.selectedQuake = null
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
     }
 }
 
