@@ -3,13 +3,15 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Saturday 16th May 2026, 13:08 PT
+Last updated: Saturday 16th May 2026, 15:50 PT
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Commit #27: Using the Material 3 Adaptive library in Compose
-            to handle orientation changes in the app on different devices.
+Commit #28: Using the Material 3 Adaptive library in Compose
+to handle orientation changes in the app on different devices.
+This commit has significant improvements to the layout in landscape orientation.
+Work in progress. ***API key removed.***
 
 
  */
@@ -28,6 +30,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -49,8 +52,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.layout.AnimatedPane
-import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.*
@@ -365,8 +366,24 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
 
     val navigator = rememberListDetailPaneScaffoldNavigator<Feature>()
 
-    // Use navigator to handle back press when in detail view on small screens
-    // No explicit BackHandler needed as navigator.navigateBack() is usually called by UI
+    // Use navigator to handle back press when in detail view
+    val detailQuake = navigator.currentDestination?.contentKey
+    if (detailQuake != null) {
+        BackHandler {
+            scope.launch {
+                navigator.navigateBack()
+            }
+        }
+        DetailScreen(
+            quake = detailQuake,
+            onBack = {
+                scope.launch {
+                    navigator.navigateBack()
+                }
+            }
+        )
+        return
+    }
 
     // ── NEW: track whether the info screen is open ──────────────────────────
     var showInfoScreen by remember { mutableStateOf(false) }
@@ -580,91 +597,49 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
             }
         }
     ) { paddingValues ->
-        ListDetailPaneScaffold(
-            directive = navigator.scaffoldDirective,
-            value = navigator.scaffoldValue,
-            listPane = {
-                AnimatedPane {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        MapView(
-                            earthquakes = viewModel.filteredQuakes,
-                            selectedQuake = viewModel.selectedQuake,
-                            onQuakeSelected = { quake ->
-                                viewModel.selectedQuake = quake
-                                scope.launch {
-                                    navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, quake)
-                                }
-                            },
-                            modifier = Modifier.fillMaxSize(),
-                            centerLocation = viewModel.selectedQuake?.let {
-                                LatLng(it.geometry.coordinates[1], it.geometry.coordinates[0])
-                            } ?: if (viewModel.searchTerm.isNotEmpty())
-                                viewModel.getAverageLocationForFiltered()
-                            else
-                                null
-                        )
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            MapView(
+                earthquakes = viewModel.filteredQuakes,
+                selectedQuake = viewModel.selectedQuake,
+                onQuakeSelected = { quake ->
+                    viewModel.selectedQuake = quake
+                    scope.launch {
+                        navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, quake)
+                    }
+                },
+                modifier = Modifier.fillMaxSize(),
+                centerLocation = viewModel.selectedQuake?.let {
+                    LatLng(it.geometry.coordinates[1], it.geometry.coordinates[0])
+                } ?: if (viewModel.searchTerm.isNotEmpty())
+                    viewModel.getAverageLocationForFiltered()
+                else
+                    null
+            )
 
-                        // In landscape, the list is moved to the detail pane when no detail is active.
-                        // In portrait, it remains a floating card over the map.
-                        if (viewModel.showList && !isLandscape) {
-                            Card(
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(16.dp)
-                                    .width(350.dp)
-                                    .heightIn(max = 450.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = Color(0xFF1F2937).copy(alpha = 0.95f)
-                                ),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-                            ) {
-                                EarthquakeList(
-                                    viewModel = viewModel,
-                                    onQuakeSelected = { quake ->
-                                        val isNewSelection = viewModel.selectedQuake != quake
-                                        viewModel.selectedQuake = if (isNewSelection) quake else null
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-                    }
+            // In both portrait and landscape, the list remains a floating card over the map.
+            if (viewModel.showList) {
+                Card(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp)
+                        .width(350.dp)
+                        .heightIn(max = 450.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF1F2937).copy(alpha = 0.95f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    EarthquakeList(
+                        viewModel = viewModel,
+                        onQuakeSelected = { quake ->
+                            val isNewSelection = viewModel.selectedQuake != quake
+                            viewModel.selectedQuake = if (isNewSelection) quake else null
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
-            },
-            detailPane = {
-                AnimatedPane {
-                    val quake = navigator.currentDestination?.contentKey
-                    if (quake != null) {
-                        DetailScreen(
-                            quake = quake,
-                            onBack = {
-                                if (navigator.canNavigateBack()) {
-                                    scope.launch {
-                                        navigator.navigateBack()
-                                    }
-                                }
-                            }
-                        )
-                    } else if (isLandscape && viewModel.showList) {
-                        // In landscape, use the detail pane for the list if no quake is being detailed
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            EarthquakeList(
-                                viewModel = viewModel,
-                                onQuakeSelected = { selected ->
-                                    viewModel.selectedQuake = selected
-                                },
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                    } else {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("Select an earthquake to see details", color = Color.Gray)
-                        }
-                    }
-                }
-            },
-            modifier = Modifier.padding(paddingValues)
-        )
+            }
+        }
     }
 }
 
