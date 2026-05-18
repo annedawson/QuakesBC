@@ -3,14 +3,15 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Saturday 16th May 2026, 15:50 PT
+Last updated: Monday 18th May 2026, 12:36 PT
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Commit #28: Using the Material 3 Adaptive library in Compose
+Commit #29: Using the Material 3 Adaptive library in Compose
 to handle orientation changes in the app on different devices.
-This commit has significant improvements to the layout in landscape orientation.
+This commit fixes a glitch when the orientation changes when the
+Quakes Detail pane is open.
 Work in progress. ***API key removed.***
 
 
@@ -55,6 +56,7 @@ import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -364,10 +366,14 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val scope = rememberCoroutineScope()
 
-    val navigator = rememberListDetailPaneScaffoldNavigator<Feature>()
+    val navigator = rememberListDetailPaneScaffoldNavigator<String>()
 
     // Use navigator to handle back press when in detail view
-    val detailQuake = navigator.currentDestination?.contentKey
+    val detailQuakeId = navigator.currentDestination?.contentKey
+    val detailQuake = remember(detailQuakeId, viewModel.earthquakes) {
+        viewModel.earthquakes.find { it.id == detailQuakeId }
+    }
+
     if (detailQuake != null) {
         BackHandler {
             scope.launch {
@@ -385,11 +391,12 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
         return
     }
 
-    // ── NEW: track whether the info screen is open ──────────────────────────
-    var showInfoScreen by remember { mutableStateOf(false) }
+    // ── track whether the info screen is open ──────────────────────────
+    var showInfoScreen by rememberSaveable { mutableStateOf(false) }
 
     if (showInfoScreen) {
-        InfoScreen(onBack = {showInfoScreen = false })
+        BackHandler { showInfoScreen = false }
+        InfoScreen(onBack = { showInfoScreen = false })
         return   // don't render the rest of the app while info screen is open
     }
     // ────────────────────────────────────────────────────────────────────────
@@ -604,7 +611,7 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                 onQuakeSelected = { quake ->
                     viewModel.selectedQuake = quake
                     scope.launch {
-                        navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, quake)
+                        navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, quake.id)
                     }
                 },
                 modifier = Modifier.fillMaxSize(),
