@@ -3,16 +3,16 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Monday 18th May 2026, 12:36 PT
+Last updated: Wednesday 27th May 2026, 16:45 PT
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Commit #29: Using the Material 3 Adaptive library in Compose
+Commit #30: Using the Material 3 Adaptive library in Compose
 to handle orientation changes in the app on different devices.
-This commit fixes a glitch when the orientation changes when the
-Quakes Detail pane is open.
-Work in progress. ***API key removed.***
+This commit improves the UI in the landscape orientation on the phone
+when the Quake Details pane is open so that text is not lost off
+the bottom of the screen. Work in progress. ***API key removed.***
 
 
  */
@@ -604,7 +604,9 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
             }
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)) {
             MapView(
                 earthquakes = viewModel.filteredQuakes,
                 selectedQuake = viewModel.selectedQuake,
@@ -653,6 +655,8 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailScreen(quake: Feature, onBack: () -> Unit) {
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     Scaffold(
         topBar = {
             TopAppBar(
@@ -682,33 +686,52 @@ fun DetailScreen(quake: Feature, onBack: () -> Unit) {
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2937))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .clip(CircleShape)
-                                .background(getMagnitudeColor(quake.properties.mag ?: 0.0))
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .background(getMagnitudeColor(quake.properties.mag ?: 0.0))
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "M${String.format(Locale.US, "%.1f", quake.properties.mag ?: 0.0)}",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+
+                        if (isLandscape) {
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text = quake.properties.place ?: "Unknown location",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    if (!isLandscape) {
+                        Spacer(modifier = Modifier.height(12.dp))
+
                         Text(
-                            text = "M${String.format(Locale.US, "%.1f", quake.properties.mag ?: 0.0)}",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
+                            text = quake.properties.place ?: "Unknown location",
+                            style = MaterialTheme.typography.titleLarge,
                             color = Color.White
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = quake.properties.place ?: "Unknown location",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = Color.White
-                    )
-
                     Spacer(modifier = Modifier.height(16.dp))
                     HorizontalDivider(color = Color(0xFF374151))
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 16.dp))
 
                     DetailRowLarge("Time", SimpleDateFormat("MMM dd, yyyy HH:mm:ss", Locale.getDefault()).format(Date(quake.properties.time)))
                     DetailRowLarge("Depth", "${String.format(Locale.US, "%.1f", quake.geometry.coordinates.getOrNull(2) ?: 0.0)} km")
