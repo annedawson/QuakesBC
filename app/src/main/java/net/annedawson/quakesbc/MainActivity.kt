@@ -3,20 +3,16 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Thursday 28th May 2026, 11:36 PT
+Last updated: Thursday 28th May 2026, 13:22 PT
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Commit #31: Using the Material 3 Adaptive library in Compose
+Commit #32: Using the Material 3 Adaptive library in Compose
 to handle orientation changes in the app on different devices.
-This commit improves the UI so that the selected earthquake is highlighted
-in a white circle and the selected earthquake highlighted in the list
-has a more compact display of the details.
+This commit improves the UI so that the map-selected earthquake is highlighted
+in the visible part of the earthquake list.
 Work in progress. ***API key removed.***
-
-
-
 
  */
 
@@ -43,6 +39,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -998,6 +995,18 @@ fun EarthquakeList(
     onQuakeSelected: (Feature) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val listState = rememberLazyListState()
+
+    // Automatically scroll to the selected earthquake when it changes
+    LaunchedEffect(viewModel.selectedQuake) {
+        viewModel.selectedQuake?.let { selected ->
+            val index = viewModel.filteredQuakes.indexOfFirst { it.id == selected.id }
+            if (index != -1) {
+                listState.animateScrollToItem(index)
+            }
+        }
+    }
+
     Column(
         modifier = modifier
             .background(Color(0xFF1F2937))
@@ -1113,6 +1122,7 @@ fun EarthquakeList(
 
             else -> {
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
