@@ -3,16 +3,19 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Wednesday 27th May 2026, 16:45 PT
+Last updated: Thursday 28th May 2026, 11:36 PT
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Commit #30: Using the Material 3 Adaptive library in Compose
+Commit #31: Using the Material 3 Adaptive library in Compose
 to handle orientation changes in the app on different devices.
-This commit improves the UI in the landscape orientation on the phone
-when the Quake Details pane is open so that text is not lost off
-the bottom of the screen. Work in progress. ***API key removed.***
+This commit improves the UI so that the selected earthquake is highlighted
+in a white circle and the selected earthquake highlighted in the list
+has a more compact display of the details.
+Work in progress. ***API key removed.***
+
+
 
 
  */
@@ -829,8 +832,8 @@ fun MapView(
                     center = position,
                     radius = getMagnitudeRadius(mag),
                     fillColor = getMagnitudeColor(mag).copy(alpha = 0.4f),
-                    strokeColor = getMagnitudeColor(mag),
-                    strokeWidth = if (isSelected) 4f else 2f,
+                    strokeColor = if (isSelected) Color.White else getMagnitudeColor(mag),
+                    strokeWidth = if (isSelected) 10f else 2f,
                     clickable = true,
                     onClick = {
                         onQuakeSelected(quake)
@@ -1318,6 +1321,18 @@ fun EarthquakeCard(quake: Feature, isSelected: Boolean, onClick: () -> Unit) {
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "Depth: ${
+                            String.format(
+                                Locale.US,
+                                "%.1f",
+                                quake.geometry.coordinates.getOrNull(2) ?: 0.0
+                            )
+                        } km",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFFD1D5DB)
+                    )
                 }
                 Text(
                     text = formatTime(quake.properties.time),
@@ -1334,37 +1349,17 @@ fun EarthquakeCard(quake: Feature, isSelected: Boolean, onClick: () -> Unit) {
                 color = Color(0xFFD1D5DB)
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
+            quake.properties.felt?.let { felt ->
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Depth: ${
-                        String.format(
-                            Locale.US,
-                            "%.1f",
-                            quake.geometry.coordinates.getOrNull(2) ?: 0.0
-                        )
-                    } km",
+                    text = "$felt reports",
                     style = MaterialTheme.typography.labelSmall,
-                    //color = Color(0xFF6B7280)
-                    color = Color(0xFFD1D5DB)
+                    color = Color(0xFFFBBF24)
                 )
-                quake.properties.felt?.let { felt ->
-                    Text(
-                        text = "$felt reports",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFFFBBF24)
-                    )
-                }
             }
 
             if (isSelected) {
-                Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider(color = Color(0xFF374151))
-                Spacer(modifier = Modifier.height(12.dp))
-
+                Spacer(modifier = Modifier.height(8.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     DetailRow(
                         "Coordinates",
