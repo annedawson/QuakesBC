@@ -3,15 +3,13 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Thursday 28th May 2026, 13:22 PT
+Last updated: Tuesday 2nd June 2026, 16:07 PT
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Commit #32: Using the Material 3 Adaptive library in Compose
-to handle orientation changes in the app on different devices.
-This commit improves the UI so that the map-selected earthquake is highlighted
-in the visible part of the earthquake list.
+Commit #33: This commit improves the UI so that the Google icon on the map
+is not obstructed by the map legend. Test procedures performed successfully.
 Work in progress. ***API key removed.***
 
  */
@@ -186,6 +184,10 @@ class EarthquakeViewModel : ViewModel() {
                 val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
                 sdf.timeZone = TimeZone.getTimeZone("UTC")
 
+                // Simulate a 500 error by skipping the API and jumping to catch
+                //throw Exception("HTTP 500 Internal Server Error")
+
+
                 val response = api.getEarthquakes(
                     startTime = sdf.format(startTime),
                     endTime = sdf.format(endTime),
@@ -200,7 +202,8 @@ class EarthquakeViewModel : ViewModel() {
                 filterAndSortQuakes()
                 lastUpdate = Date()
             } catch (e: Exception) {
-                error = "Failed to fetch earthquakes: ${e.message}"
+                //error = "Failed to fetch earthquakes: ${e.message}"
+                error = "Failed to fetch earthquakes from earthquake.usgs.gov"
             } finally {
                 loading = false
             }
@@ -882,7 +885,7 @@ fun MapView(
         Card(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(16.dp),
+                .padding(start = 16.dp, bottom = 48.dp, end = 16.dp, top = 16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = Color(0xFF111827).copy(alpha = 0.9f)
             )
@@ -1088,7 +1091,8 @@ fun EarthquakeList(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         TextButton(onClick = { viewModel.fetchEarthquakes() }) {
-                            Text("Check your internet connection and try again")
+                            //Text("Check your internet connection and try again")
+                            Text("Check your internet connection and refresh the list")
                         }
                     }
                 }
