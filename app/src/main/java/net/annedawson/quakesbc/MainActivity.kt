@@ -3,12 +3,14 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Wednesday 3rd June 2026, 14:46 PT
+Last updated: Wednesday 17th June 2026, 16:37 PT
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Commit #34: This commit removes all compiler warnings bar one -
+Commit #35: This commit converts the app to
+full-screen immersive. Two compiler warnings remaining -
+paddingValues is never used,
 function "showNotification" is never used.
 Work in progress. ***API key removed.***
 
@@ -64,6 +66,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -313,6 +318,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Full screen immersive mode: hide status and navigation bars
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.hide(WindowInsetsCompat.Type.systemBars())
+        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else {
@@ -414,7 +425,6 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(Color(0xFF1E3A8A))
-                            .statusBarsPadding()
                             .padding(horizontal = 16.dp, vertical = if (isLandscape) 8.dp else 12.dp)
                     ) {
                         if (isLandscape) {
@@ -606,8 +616,7 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                 }
             ) { paddingValues ->
                 Box(modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)) {
+                    .fillMaxSize()) {
                     MapView(
                         earthquakes = viewModel.filteredQuakes,
                         selectedQuake = viewModel.selectedQuake,
