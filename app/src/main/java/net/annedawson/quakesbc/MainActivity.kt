@@ -3,15 +3,16 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Wednesday 17th June 2026, 16:37 PT
+Last updated: Thursday 18th June 2026, 11:01 PT
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Commit #35: This commit converts the app to
-full-screen immersive. Two compiler warnings remaining -
-paddingValues is never used,
-function "showNotification" is never used.
+Commit #36: This commit corrects the
+error: "paddingValues is never used".
+One compiler warning remains:
+"function showNotification is never used".
+Notification is a future feature.
 Work in progress. ***API key removed.***
 
  */
@@ -616,7 +617,8 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                 }
             ) { paddingValues ->
                 Box(modifier = Modifier
-                    .fillMaxSize()) {
+                    .fillMaxSize()
+                    .padding(paddingValues)) {
                     MapView(
                         earthquakes = viewModel.filteredQuakes,
                         selectedQuake = viewModel.selectedQuake,
