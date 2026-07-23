@@ -3,15 +3,12 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Thursday 18th June 2026, 11:01 PT
+Last updated: Thursday 23rd July 2026, 15:58 PT
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Commit #36: This commit corrects the
-error: "paddingValues is never used".
-One compiler warning remains:
-"function showNotification is never used".
+Commit #37: This commit has the new launcher icon.
 Notification is a future feature.
 Work in progress. ***API key removed.***
 
@@ -61,6 +58,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -73,6 +71,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.Image
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import retrofit2.Retrofit
@@ -435,12 +434,19 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Icon(
+                                /*Icon(
                                     imageVector = Icons.Default.Warning,
                                     contentDescription = "App information",
                                     tint = Color(0xFFFBBF24),
                                     modifier = Modifier
                                         .size(24.dp)
+                                        .clickable { viewModel.showInfoScreen = true }
+                                )*/
+                                Image(
+                                    painter = painterResource(id = R.mipmap.ic_launcher_foreground),
+                                    contentDescription = "App information",
+                                    modifier = Modifier
+                                        .size(36.dp)
                                         .clickable { viewModel.showInfoScreen = true }
                                 )
                                 Text(
@@ -520,12 +526,20 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
+                                    /*Icon(
                                         imageVector = Icons.Default.Warning,
                                         contentDescription = "App information",
                                         tint = Color(0xFFFBBF24),
                                         modifier = Modifier
                                             .size(32.dp)
+                                            .clickable { viewMode
+//                                            l.showInfoScreen = true }.
+                                    )*/
+                                    Image(
+                                        painter = painterResource(id = R.mipmap.ic_launcher_foreground),
+                                        contentDescription = "App information",
+                                        modifier = Modifier
+                                            .size(36.dp)
                                             .clickable { viewModel.showInfoScreen = true }
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
@@ -790,9 +804,8 @@ fun MapView(
     centerLocation: LatLng? = null
 ) {
     // Western Canada center coordinates (BC focus)
-    val westCanadaCenter = LatLng(54.0, -125.0)
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(westCanadaCenter, 5.5f)
+        position = CameraPosition.fromLatLngZoom(LatLng(54.0, -125.0), 5.5f)
     }
 
     // Move camera when centerLocation changes
