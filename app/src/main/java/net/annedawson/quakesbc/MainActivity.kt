@@ -3,12 +3,13 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Thursday 23rd July 2026, 15:58 PT
+Last updated: Monday 27th July 2026, 15:58 PT
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Commit #37: This commit has the new launcher icon.
+Commit #38: The UI has been improved slightly and
+            a new Information button has been added.
 Notification is a future feature.
 Work in progress. ***API key removed.***
 
@@ -425,6 +426,7 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(Color(0xFF1E3A8A))
+                            .safeDrawingPadding()
                             .padding(horizontal = 16.dp, vertical = if (isLandscape) 8.dp else 12.dp)
                     ) {
                         if (isLandscape) {
@@ -444,10 +446,8 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                                 )*/
                                 Image(
                                     painter = painterResource(id = R.mipmap.ic_launcher_foreground),
-                                    contentDescription = "App information",
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clickable { viewModel.showInfoScreen = true }
+                                    contentDescription = "App logo",
+                                    modifier = Modifier.size(36.dp)
                                 )
                                 Text(
                                     text = "QuakesBC",
@@ -503,6 +503,13 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                                 ) {
                                     Icon(Icons.Default.Refresh, "Refresh", tint = Color.White, modifier = Modifier.size(20.dp))
                                 }
+
+                                IconButton(
+                                    onClick = { viewModel.showInfoScreen = true },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(Icons.Default.Info, "Info", tint = Color.White, modifier = Modifier.size(20.dp))
+                                }
                             }
 
                             if (viewModel.showFilters) {
@@ -537,10 +544,8 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                                     )*/
                                     Image(
                                         painter = painterResource(id = R.mipmap.ic_launcher_foreground),
-                                        contentDescription = "App information",
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clickable { viewModel.showInfoScreen = true }
+                                        contentDescription = "App logo",
+                                        modifier = Modifier.size(36.dp)
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
@@ -556,8 +561,8 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                                         )
                                     }
                                 }
-                                IconButton(onClick = { viewModel.fetchEarthquakes() }, enabled = !viewModel.loading) {
-                                    Icon(Icons.Default.Refresh, "Refresh", tint = Color.White)
+                                IconButton(onClick = { viewModel.showInfoScreen = true }) {
+                                    Icon(Icons.Default.Info, "Info", tint = Color.White)
                                 }
                             }
 
@@ -618,13 +623,22 @@ fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
                                 }
                             }
 
-                            viewModel.lastUpdate?.let { lastUpdate ->
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Last updated: ${SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(lastUpdate)}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFF9CA3AF)
-                                )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                viewModel.lastUpdate?.let { lastUpdate ->
+                                    Text(
+                                        text = "Last updated: ${SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(lastUpdate)}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(0xFF9CA3AF)
+                                    )
+                                }
+                                IconButton(onClick = { viewModel.fetchEarthquakes() }, enabled = !viewModel.loading) {
+                                    Icon(Icons.Default.Refresh, "Refresh", tint = Color.White)
+                                }
                             }
                         }
                     }
@@ -1208,11 +1222,10 @@ fun InfoScreen(onBack: () -> Unit) {
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Warning,
+                                                                                                            Image(
+                                painter = painterResource(id = R.mipmap.ic_launcher_foreground),
                                 contentDescription = null,
-                                tint = Color(0xFFFBBF24),
-                                modifier = Modifier.size(28.dp)
+                                modifier = Modifier.size(32.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
