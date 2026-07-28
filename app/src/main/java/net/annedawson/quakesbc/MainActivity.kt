@@ -3,20 +3,19 @@ package net.annedawson.quakesbc
 
 /*
 
-Last updated: Monday 27th July 2026, 15:58 PT
+Last updated: Tuesday 28th July 2026, 15:24 PT
 Programmer: Anne Dawson
 App: QuakesBC
 Purpose: An earthquake monitor for BC Canada and neighbouring territory
 File: MainActivity.kt
-Commit #38: The UI has been improved slightly and
-            a new Information button has been added.
-Notification is a future feature.
+Commit #39: The Notification feature has been implemented.
 Work in progress. ***API key removed.***
 
  */
 
 import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -49,7 +48,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
@@ -73,12 +71,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.Image
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Query
+import android.graphics.BitmapFactory
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -149,6 +150,10 @@ class EarthquakeViewModel : ViewModel() {
     var maxResults by mutableIntStateOf(500)
         private set
 
+    private val _newSignificantQuakes = Channel<Feature>(Channel.BUFFERED)
+    val newSignificantQuakes = _newSignificantQuakes.receiveAsFlow()
+    private val seenQuakeIds = mutableSetOf<String>()
+
     private val westCanadaBounds = mapOf(
         "minLat" to 48.0,
         "maxLat" to 70.0,
@@ -203,7 +208,21 @@ class EarthquakeViewModel : ViewModel() {
                     minMag = minMagnitude
                 )
 
+                // On first load, just fill the seen list to avoid notifying for old events
+                val isInitialLoad = earthquakes.isEmpty()
+
                 earthquakes = response.features
+
+                response.features.forEach { quake ->
+                    val mag = quake.properties.mag ?: 0.0
+                    // Notify if mag >= 6.0 and it's a new quake (not seen before)
+                    // We only notify on subsequent refreshes, not on the very first app launch
+                    if (!isInitialLoad && mag >= 0.0 && !seenQuakeIds.contains(quake.id)) {
+                        _newSignificantQuakes.trySend(quake)
+                    }
+                    seenQuakeIds.add(quake.id)
+                }
+
                 filterAndSortQuakes()
                 lastUpdate = Date()
             } catch (_: Exception) {
@@ -376,11 +395,19 @@ fun QuakeWatchWestTheme(content: @Composable () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun QuakesBCApp(viewModel: EarthquakeViewModel = viewModel()) {
+    val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val scope = rememberCoroutineScope()
 
     val navigator = rememberListDetailPaneScaffoldNavigator<String>()
+
+    // Observe new significant earthquakes for notifications
+    LaunchedEffect(Unit) {
+        viewModel.newSignificantQuakes.collect { quake ->
+            showNotification(context, quake)
+        }
+    }
 
     // Use navigator to handle back press when in detail view
     val detailQuakeId = navigator.currentDestination?.contentKey
@@ -1600,7 +1627,9 @@ fun showNotification(context: Context, quake: Feature) {
     }
 
     val notification = NotificationCompat.Builder(context, "earthquake_alerts")
-        .setSmallIcon(android.R.drawable.ic_dialog_alert)
+        .setSmallIcon(R.mipmap.ic_launcher)
+        .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher))
+        .setColor(0xFF1E3A8A.toInt()) // Use the app's deep blue color
         .setContentTitle("Significant Earthquake Detected!")
         .setContentText(
             "M${
